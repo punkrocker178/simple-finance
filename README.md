@@ -1,6 +1,6 @@
 # Simple Finance
 
-FastAPI app for market data (yfinance wrapper) and Aggressive DCA backtesting with persisted results.
+FastAPI app for market data (yfinance wrapper) and Aggressive DCA backtesting with persisted results. Nuxt 4 frontend under `frontend/`.
 
 ## Setup
 
@@ -11,6 +11,14 @@ pip install -e .
 cp .env.example .env
 ```
 
+### Frontend
+
+```bash
+cd frontend
+cp .env.example .env
+npm install
+```
+
 ## Run API
 
 ```bash
@@ -19,6 +27,19 @@ uvicorn app.main:app --reload
 
 - Docs: http://127.0.0.1:8000/docs
 - Health: `GET /health`
+
+## Run frontend
+
+With the API on `:8000`:
+
+```bash
+cd frontend
+npm run dev
+```
+
+- App: http://127.0.0.1:3000
+- Browser calls go to `/api/backend/*` (Nitro proxy → FastAPI)
+- SSR fetches use `NUXT_API_TARGET` (default `http://127.0.0.1:8000`)
 
 ## Key endpoints
 
@@ -36,6 +57,8 @@ uvicorn app.main:app --reload
 ## Config
 
 See `.env.example` for `DEFAULT_TICKER`, `DATABASE_URL`, market-data provider (`yfinance` / `http`), and watchlist symbols.
+
+Frontend env: see [`frontend/.env.example`](frontend/.env.example).
 
 ## CLI backtest (plots locally)
 
