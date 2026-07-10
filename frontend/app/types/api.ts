@@ -56,6 +56,18 @@ export interface MarketSummaryResponse {
   items: MarketSummaryItem[]
 }
 
+export interface TickerSearchItem {
+  symbol: string
+  short_name?: string | null
+  long_name?: string | null
+  exchange?: string | null
+  quote_type?: string | null
+}
+
+export interface TickerSearchResponse {
+  items: TickerSearchItem[]
+}
+
 export type VisualizationMode = 'series' | 'images' | 'both'
 
 export interface BacktestRequest {

@@ -7,12 +7,28 @@ from app.api.schemas.market import (
     MarketSummaryResponse,
     OhlcvResponse,
     TickerInfoResponse,
+    TickerSearchResponse,
 )
 from app.core.config import get_settings
 from app.services.market_data.yfinance_client import MarketDataError, YFinanceClient
 
 router = APIRouter()
 _client = YFinanceClient()
+
+
+@router.get("/tickers/search", response_model=TickerSearchResponse)
+def search_tickers(
+    q: str = Query(..., min_length=1, description="Search query"),
+    limit: int = Query(20, ge=1, le=50, description="Max results"),
+) -> TickerSearchResponse:
+    query = q.strip()
+    if not query:
+        raise HTTPException(status_code=422, detail="Query must not be empty")
+    try:
+        items = _client.search_vn_tickers(query, limit=limit)
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=f"Upstream market data error: {exc}") from exc
+    return TickerSearchResponse(items=items)
 
 
 @router.get("/tickers/{ticker}", response_model=TickerInfoResponse)

@@ -35,6 +35,7 @@ class MarketDataError(Exception):
 
 OHLCV_PERIOD_FALLBACKS = ("max", "1y", "1mo", "5d")
 OHLCV_FIVE_DAY_ONLY_TICKERS = frozenset({"^VNINDEX.VN"})
+VN_EXCHANGES = frozenset({"VSE", "HOSE", "HNX", "UPCOM"})
 
 
 def _clip_ohlcv_to_end_date(df: pd.DataFrame, end_date: str) -> pd.DataFrame:
@@ -121,6 +122,33 @@ class YFinanceClient:
             "market_cap": _safe_float(fast.get("market_cap") or fast.get("marketCap")),
         }
 
+    def search_vn_tickers(self, query: str, limit: int = 20) -> list[dict[str, Any]]:
+        """Search Yahoo Finance and return Vietnamese-market tickers only."""
+        search = yf.Search(query, max_results=limit * 3)
+        seen: set[str] = set()
+        results: list[dict[str, Any]] = []
+
+        for quote in search.quotes:
+            if not _is_vietnam_quote(quote):
+                continue
+            symbol = _normalize_vn_symbol(quote.get("symbol", ""))
+            if not symbol or symbol in seen:
+                continue
+            seen.add(symbol)
+            results.append(
+                {
+                    "symbol": symbol,
+                    "short_name": quote.get("shortname") or quote.get("shortName"),
+                    "long_name": quote.get("longname") or quote.get("longName"),
+                    "exchange": quote.get("exchange"),
+                    "quote_type": quote.get("quoteType"),
+                }
+            )
+            if len(results) >= limit:
+                break
+
+        return results
+
     def get_market_summary(self, symbols: list[str]) -> list[dict[str, Any]]:
         results: list[dict[str, Any]] = []
         for symbol in symbols:
@@ -144,6 +172,23 @@ class YFinanceClient:
                 }
             )
         return records
+
+
+def _is_vietnam_quote(quote: dict[str, Any]) -> bool:
+    symbol = str(quote.get("symbol", ""))
+    if symbol.endswith(".VN"):
+        return True
+    exchange = str(quote.get("exchange", "")).upper()
+    return exchange in VN_EXCHANGES
+
+
+def _normalize_vn_symbol(symbol: str) -> str:
+    symbol = symbol.strip().upper()
+    if not symbol:
+        return ""
+    if symbol.endswith(".VN") or symbol.startswith("^"):
+        return symbol
+    return f"{symbol}.VN"
 
 
 def _safe_float(value: Any) -> float | None:

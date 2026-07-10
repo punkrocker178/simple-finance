@@ -45,6 +45,7 @@ npm run dev
 
 | Method | Path | Description |
 |--------|------|-------------|
+| GET | `/api/v1/market/tickers/search?q=&limit=` | Search Vietnamese tickers (yfinance) |
 | GET | `/api/v1/market/tickers/{ticker}` | Ticker info |
 | GET | `/api/v1/market/tickers/{ticker}/ohlcv?start=&end=` | OHLCV bars |
 | GET | `/api/v1/market/summary?symbols=` | Watchlist snapshot |
@@ -56,7 +57,9 @@ npm run dev
 
 ## Config
 
-See `.env.example` for `DEFAULT_TICKER`, `DATABASE_URL`, market-data provider (`yfinance` / `http`), and watchlist symbols.
+See `.env.example` for `DEFAULT_TICKER`, `DATABASE_URL`, market-data provider (`yfinance` / `http`), and default `MARKET_SUMMARY_SYMBOLS` (used when `/summary` has no `symbols` param).
+
+The homepage watchlist is stored in browser `localStorage` (`sf-watchlist`); add/remove tickers via the UI and pass the saved symbols to `/summary?symbols=`.
 
 Frontend env: see [`frontend/.env.example`](frontend/.env.example).
 

@@ -9,14 +9,29 @@ useSeoMeta({
 
 const { apiFetch } = useApi()
 const router = useRouter()
+const watchlist = useWatchlist()
+
+const symbolsParam = computed(() => watchlist.symbols.value.join(','))
 
 const { data, pending, error, refresh } = await useAsyncData(
   'market-summary',
-  () => apiFetch<MarketSummaryResponse>('/api/v1/market/summary'),
+  () => {
+    if (!symbolsParam.value) {
+      return Promise.resolve({ symbols: [], items: [] } satisfies MarketSummaryResponse)
+    }
+    return apiFetch<MarketSummaryResponse>('/api/v1/market/summary', {
+      query: { symbols: symbolsParam.value },
+    })
+  },
+  { server: false, watch: [symbolsParam] },
 )
 
 function onSelect(symbol: string) {
   void router.push(`/market/${encodeURIComponent(symbol)}`)
+}
+
+function onRemove(symbol: string) {
+  watchlist.remove(symbol)
 }
 </script>
 
@@ -25,7 +40,7 @@ function onSelect(symbol: string) {
     <div class="flex flex-wrap items-end justify-between gap-4">
       <div>
         <h1 class="text-3xl font-semibold">Watchlist</h1>
-        <p class="mt-1 text-gray-600">Live snapshot from the market summary API.</p>
+        <p class="mt-1 text-gray-600">Your tickers are saved in this browser.</p>
       </div>
       <div class="flex gap-2">
         <v-btn variant="outlined" :loading="pending" @click="refresh()">Refresh</v-btn>
@@ -33,14 +48,22 @@ function onSelect(symbol: string) {
       </div>
     </div>
 
+    <MarketWatchlistAddTicker :on-add="watchlist.add" />
+
     <v-alert v-if="error" type="error" variant="tonal">
       {{ error.message || 'Failed to load watchlist' }}
     </v-alert>
 
+    <p v-if="watchlist.ready && !watchlist.symbols.value.length" class="text-gray-600">
+      No tickers yet. Search above to add Vietnamese market symbols.
+    </p>
+
     <MarketWatchlistTable
+      v-else
       :items="data?.items ?? []"
-      :loading="pending"
+      :loading="pending || !watchlist.ready"
       @select="onSelect"
+      @remove="onRemove"
     />
   </div>
 </template>

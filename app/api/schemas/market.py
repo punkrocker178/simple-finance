@@ -63,3 +63,15 @@ class MarketSummaryItem(BaseModel):
 class MarketSummaryResponse(BaseModel):
     symbols: list[str] = Field(default_factory=list)
     items: list[dict[str, Any]] = Field(default_factory=list)
+
+
+class TickerSearchItem(BaseModel):
+    symbol: str
+    short_name: str | None = None
+    long_name: str | None = None
+    exchange: str | None = None
+    quote_type: str | None = None
+
+
+class TickerSearchResponse(BaseModel):
+    items: list[TickerSearchItem] = Field(default_factory=list)

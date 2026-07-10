@@ -8,6 +8,7 @@ defineProps<{
 
 const emit = defineEmits<{
   select: [symbol: string]
+  remove: [symbol: string]
 }>()
 
 function formatPrice(value: number | null | undefined): string {
@@ -33,6 +34,7 @@ function dayChange(item: MarketSummaryItem): number | null {
       { title: 'Prev close', key: 'previous_close' },
       { title: 'Day %', key: 'day_pct' },
       { title: 'Exchange', key: 'exchange' },
+      { title: '', key: 'actions', sortable: false, width: 56 },
     ]"
     item-value="symbol"
     hover
@@ -57,6 +59,16 @@ function dayChange(item: MarketSummaryItem): number | null {
     </template>
     <template #item.exchange="{ item }">
       {{ item.exchange || '—' }}
+    </template>
+    <template #item.actions="{ item }">
+      <v-btn
+        variant="text"
+        size="small"
+        color="error"
+        @click.stop="emit('remove', item.symbol)"
+      >
+        Remove
+      </v-btn>
     </template>
   </v-data-table>
 </template>
