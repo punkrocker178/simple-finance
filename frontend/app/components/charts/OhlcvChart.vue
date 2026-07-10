@@ -26,6 +26,14 @@ const props = defineProps<{
   mode?: 'candlestick' | 'line'
 }>()
 
+const ready = ref(false)
+
+onMounted(() => {
+  nextTick(() => {
+    ready.value = true
+  })
+})
+
 const option = computed(() => {
   const dates = props.bars.map((b) => b.date)
   const candleData = props.bars.map((b) => [b.open, b.close, b.low, b.high])
@@ -60,5 +68,14 @@ const option = computed(() => {
 </script>
 
 <template>
-  <VChart class="h-96 w-full" :option="option" autoresize />
+  <div class="chart-host">
+    <VChart v-if="ready" :option="option" autoresize />
+  </div>
 </template>
+
+<style scoped>
+.chart-host {
+  width: 100%;
+  height: 24rem;
+}
+</style>

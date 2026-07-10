@@ -25,6 +25,14 @@ const props = defineProps<{
   series: BacktestSeries
 }>()
 
+const ready = ref(false)
+
+onMounted(() => {
+  nextTick(() => {
+    ready.value = true
+  })
+})
+
 const option = computed(() => {
   const { dates, portfolio_value, dip_buys } = props.series
 
@@ -75,5 +83,14 @@ const option = computed(() => {
 </script>
 
 <template>
-  <VChart class="h-96 w-full" :option="option" autoresize />
+  <div class="chart-host">
+    <VChart v-if="ready" :option="option" autoresize />
+  </div>
 </template>
+
+<style scoped>
+.chart-host {
+  width: 100%;
+  height: 24rem;
+}
+</style>
