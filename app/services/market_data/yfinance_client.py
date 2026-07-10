@@ -33,17 +33,36 @@ class MarketDataError(Exception):
     """Raised when market data cannot be retrieved or normalized."""
 
 
+OHLCV_PERIOD_FALLBACKS = ("max", "1y", "1mo", "5d")
+OHLCV_FIVE_DAY_ONLY_TICKERS = frozenset({"^VNINDEX.VN"})
+
+
+def _clip_ohlcv_to_end_date(df: pd.DataFrame, end_date: str) -> pd.DataFrame:
+    """Include all bars on end_date, including intraday timestamps after midnight."""
+    end_exclusive = pd.Timestamp(end_date) + pd.Timedelta(days=1)
+    return df[df.index < end_exclusive]
+
+
 class YFinanceClient:
     def get_ohlcv(self, ticker: str, start_date: str, end_date: str) -> pd.DataFrame:
-        """Fetch OHLCV. On sparse/empty ranged history, falls back to max period up to end_date."""
+        """Fetch OHLCV. On sparse/empty ranged history, tries shorter period fallbacks."""
         stock = yf.Ticker(ticker)
-        df = stock.history(start=start_date, end=end_date)
 
-        if df.empty or len(df) < 500:
-            df = stock.history(period="max")
-            if not df.empty:
-                df = self._normalize_ohlcv_index(df)
-                df = df[df.index <= pd.Timestamp(end_date)]
+        if ticker in OHLCV_FIVE_DAY_ONLY_TICKERS:
+            df = stock.history(period="5d", interval="4h")
+        else:
+            df = stock.history(start=start_date, end=end_date)
+
+            if df.empty or len(df) < 500:
+                for period in OHLCV_PERIOD_FALLBACKS:
+                    candidate = stock.history(period=period)
+                    if not candidate.empty:
+                        df = candidate
+                        break
+
+        if not df.empty:
+            df = self._normalize_ohlcv_index(df)
+            df = _clip_ohlcv_to_end_date(df, end_date)
 
         if df.empty:
             raise MarketDataError(f"No data found for {ticker}.")

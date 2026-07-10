@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from datetime import date
 from typing import Any
 from uuid import UUID
@@ -16,6 +17,8 @@ from app.services.dca.strategy import run_aggressive_dca, run_benchmark, run_sta
 from app.services.market_data.base import MarketDataProvider
 from app.services.market_data.factory import get_market_data_provider
 from app.services.market_data.yfinance_client import MarketDataError
+
+logger = logging.getLogger(__name__)
 
 
 class BacktestServiceError(Exception):
@@ -48,6 +51,7 @@ def run_and_persist_dca_backtest(
     fee = fee_rate if fee_rate is not None else settings.default_fee_rate
     rf = settings.annual_rf_rate
 
+    logger.info("Fetching market data for %s (%s to %s)", symbol, start_date, end_date)
     try:
         df = fetch_data(
             symbol,
@@ -56,17 +60,23 @@ def run_and_persist_dca_backtest(
             provider=provider,
         )
     except MarketDataError as exc:
+        logger.error("Failed to fetch market data for %s: %s", symbol, exc)
         raise BacktestServiceError(str(exc)) from exc
     except Exception as exc:
+        logger.exception("Failed to fetch market data for %s", symbol)
         raise BacktestServiceError(f"Failed to fetch market data: {exc}") from exc
 
     if df.empty:
+        logger.warning("No market data for %s in range %s to %s", symbol, start_date, end_date)
         raise BacktestServiceError(f"No market data for {symbol} in the requested range.")
+
+    logger.info("Fetched %d rows for %s", len(df), symbol)
 
     params: dict[str, Any]
     title_suffix = ""
 
     if optimize:
+        logger.info("Starting strategy optimization for %s", symbol)
         best_params, _in_sample, out_of_sample = optimize_strategy(
             df,
             initial_cash=cash0,
@@ -86,6 +96,14 @@ def run_and_persist_dca_backtest(
         }
         run_df = out_of_sample
         title_suffix = "(Out-of-Sample)"
+        logger.info(
+            "Optimization complete for %s: lookback=%s drawdown_thresh=%s sma_period=%s in_sample_sharpe=%s",
+            symbol,
+            params["lookback"],
+            params["drawdown_thresh"],
+            params["sma_period"],
+            params.get("in_sample_sharpe"),
+        )
     else:
         params = {
             "lookback": lookback if lookback is not None else 100,
@@ -97,7 +115,9 @@ def run_and_persist_dca_backtest(
             "fee_rate": fee,
         }
         run_df = df
+        logger.info("Using fixed parameters for %s: %s", symbol, params)
 
+    logger.info("Running backtest for %s with params %s", symbol, params)
     agg_df, _ = run_aggressive_dca(
         run_df,
         lookback=params["lookback"],
@@ -110,11 +130,14 @@ def run_and_persist_dca_backtest(
     )
 
     if agg_df is None or agg_df.empty:
+        logger.warning("Test period too small after indicator warmup for %s", symbol)
         raise BacktestServiceError("Test period too small after indicator warmup.")
 
+    logger.info("Aggressive DCA complete for %s (%d rows); running standard DCA and benchmark", symbol, len(agg_df))
     std_df = run_standard_dca(agg_df, fee_rate=fee)
     bench_df = run_benchmark(agg_df, fee_rate=fee)
 
+    logger.info("Building backtest report for %s (visualization=%s%s)", symbol, visualization, f" {title_suffix}" if title_suffix else "")
     report = build_backtest_report(
         agg_df,
         std_df,
@@ -126,6 +149,13 @@ def run_and_persist_dca_backtest(
     )
 
     agg_metrics = report["metrics"]["aggressive_dca"]
+    logger.info(
+        "Persisting backtest run for %s: sharpe=%.4f cagr=%.2f%% total_return=%.2f%%",
+        symbol,
+        agg_metrics["sharpe_ratio"],
+        agg_metrics["cagr_pct"],
+        agg_metrics["total_return_pct"],
+    )
     row = BacktestRun(
         ticker=symbol,
         strategy="aggressive_dca",
@@ -142,6 +172,7 @@ def run_and_persist_dca_backtest(
     db.add(row)
     db.commit()
     db.refresh(row)
+    logger.info("Saved backtest run id=%s for %s", row.id, symbol)
     return row
 
 

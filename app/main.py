@@ -1,3 +1,4 @@
+import logging
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -7,6 +8,14 @@ from app.core.config import get_settings
 from app.core.db import init_db
 
 
+def _configure_logging() -> None:
+    if not logging.root.handlers:
+        logging.basicConfig(
+            level=logging.INFO,
+            format="%(asctime)s %(levelname)s [%(name)s] %(message)s",
+        )
+
+
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
     init_db()
@@ -14,6 +23,7 @@ async def lifespan(_app: FastAPI):
 
 
 def create_app() -> FastAPI:
+    _configure_logging()
     settings = get_settings()
     application = FastAPI(title=settings.app_name, lifespan=lifespan)
     application.include_router(health.router)

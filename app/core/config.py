@@ -21,7 +21,7 @@ class Settings(BaseSettings):
     market_data_start_param: str = "start"
     market_data_end_param: str = "end"
 
-    market_summary_symbols: str = "E1VFVN30.VN,FUEVFVND.VN,VNINDEX.VN"
+    market_summary_symbols: str = "E1VFVN30.VN,FUEVFVND.VN,^VNINDEX.VN"
 
     annual_rf_rate: float = 0.05
     default_initial_cash: float = 10_000_000
