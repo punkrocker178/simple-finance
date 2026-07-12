@@ -1,0 +1,49 @@
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      DATABASE_URL: sqlite:////data/simple_finance.db
+      MARKET_DATA_PROVIDER: ${MARKET_DATA_PROVIDER:-yfinance}
+      MARKET_SUMMARY_SYMBOLS: ${MARKET_SUMMARY_SYMBOLS:-E1VFVN30.VN,FUEVFVND.VN,^VNINDEX.VN}
+      DEFAULT_TICKER: ${DEFAULT_TICKER:-E1VFVN30.VN}
+    volumes:
+      - backend-data:/data
+    expose:
+      - "8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        NUXT_API_TARGET: http://backend:8000
+        NUXT_PUBLIC_API_BASE: /api/backend
+    ports:
+      - "${FRONTEND_PORT:-3001}:3001"
+    environment:
+      NUXT_API_TARGET: http://backend:8000
+      NUXT_PUBLIC_API_BASE: /api/backend
+      HOST: 0.0.0.0
+      PORT: 3001
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3001').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    restart: unless-stopped
+
+volumes:
+  backend-data:

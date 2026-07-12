@@ -1,5 +1,7 @@
 import { breakpoints } from './app/config/breakpoints'
 
+const apiTarget = process.env.NUXT_API_TARGET || 'http://127.0.0.1:8000'
+
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
   compatibilityDate: '2025-07-15',
@@ -23,14 +25,14 @@ export default defineNuxtConfig({
   },
 
   runtimeConfig: {
-    apiTarget: 'http://127.0.0.1:8000',
+    apiTarget,
     public: {
-      apiBase: '/api/backend',
+      apiBase: process.env.NUXT_PUBLIC_API_BASE || '/api/backend',
     },
   },
 
   routeRules: {
-    '/api/backend/**': { proxy: 'http://127.0.0.1:8000/**' },
+    '/api/backend/**': { proxy: `${apiTarget}/**` },
   },
 
   vuetify: {
