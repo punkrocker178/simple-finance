@@ -132,6 +132,64 @@ def test_get_ohlcv_raises_when_empty() -> None:
         client.get_ohlcv("BAD.VN", "2024-01-01", "2024-01-31")
 
 
+def test_get_ticker_info_equity_merges_profile_and_quote() -> None:
+    profile = pd.DataFrame(
+        [
+            {
+                "symbol": "HPG",
+                "name": "Hoa Phat Group",
+                "short_name": "Hoa Phat",
+                "exchange": "HOSE",
+                "sector": "Materials",
+                "industry": "Steel",
+                "business_model": "Steel production...",
+                "listed_volume": 8443,
+                "outstanding_shares": 8_000_000_000,
+            }
+        ]
+    )
+    quote = pd.DataFrame(
+        [
+            {
+                "symbol": "HPG",
+                "exchange": "HOSE",
+                "reference_price": 22950,
+                "close_price": 22450,
+                "high_price": 22950,
+                "low_price": 22400,
+                "volume_accumulated": 23_572_700,
+                "year_high": 30000,
+                "year_low": 18000,
+            }
+        ]
+    )
+    company = MagicMock()
+    company.info.return_value = profile
+    reference = MagicMock()
+    reference.company.return_value = company
+    equity = MagicMock()
+    equity.quote.return_value = quote
+    market = MagicMock()
+    market.equity.return_value = equity
+
+    client = _make_client(market=market, reference=reference)
+    info = client.get_ticker_info("HPG.VN")
+
+    assert info["symbol"] == "HPG.VN"
+    assert info["shortName"] == "Hoa Phat"
+    assert info["longName"] == "Hoa Phat Group"
+    assert info["exchange"] == "HOSE"
+    assert info["quoteType"] == "EQUITY"
+    assert info["sector"] == "Materials"
+    assert info["industry"] == "Steel"
+    assert info["previousClose"] == 22950.0
+    assert info["regularMarketPrice"] == 22450.0
+    assert info["fiftyTwoWeekHigh"] == 30000.0
+    assert info["fiftyTwoWeekLow"] == 18000.0
+    assert info["volume"] == 23_572_700.0
+    assert info["volume"] != 8443
+
+
 def test_search_vn_tickers_normalizes_symbols() -> None:
     search_df = pd.DataFrame(
         [

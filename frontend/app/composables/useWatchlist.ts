@@ -1,6 +1,6 @@
 const STORAGE_KEY = 'sf-watchlist'
 
-const DEFAULT_SYMBOLS = ['E1VFVN30.VN', 'FUEVFVND.VN', '^VNINDEX.VN']
+const DEFAULT_SYMBOLS = ['E1VFVN30', 'FUEVFVND']
 
 function normalizeSymbol(symbol: string): string {
   return symbol.trim().toUpperCase()

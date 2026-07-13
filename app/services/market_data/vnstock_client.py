@@ -219,13 +219,35 @@ class VnstockClient:
     def get_ticker_info(self, ticker: str) -> dict[str, Any]:
         symbol, kind = _classify_ticker(ticker)
         try:
+            profile_info: dict[str, Any] | None = None
+            outstanding_shares: float | None = None
             if kind == "equity":
                 profile = self._reference.company(symbol=symbol).info()
                 if profile is not None and not profile.empty:
-                    return self._map_company_profile(ticker, profile.iloc[0])
+                    profile_row = profile.iloc[0]
+                    profile_info = self._map_company_profile(ticker, profile_row)
+                    outstanding_shares = safe_float(
+                        _first_row_value(
+                            profile_row,
+                            "outstanding_shares",
+                            "issued_share",
+                            "issue_share",
+                        )
+                    )
+
+            quote_info: dict[str, Any] | None = None
             quote = self._fetch_quote(symbol, kind)
             if quote is not None and not quote.empty:
-                return self._map_quote_info(ticker, quote.iloc[0], kind)
+                quote_info = self._map_quote_info(ticker, quote.iloc[0], kind)
+
+            if profile_info and quote_info:
+                return self._merge_equity_info(
+                    profile_info, quote_info, outstanding_shares=outstanding_shares
+                )
+            if quote_info:
+                return quote_info
+            if profile_info:
+                return profile_info
         except MarketDataError:
             raise
         except Exception as exc:
@@ -321,41 +343,110 @@ class VnstockClient:
         return self._market.equity(symbol=symbol).quote()
 
     def _map_company_profile(self, ticker: str, row: pd.Series) -> dict[str, Any]:
-        short_name = _first_row_value(row, "business_model", "short_name", "symbol")
+        short_name = _first_row_value(
+            row, "short_name", "name", "company_name", "organ_short_name", "symbol"
+        )
+        long_name = _first_row_value(
+            row,
+            "name",
+            "company_name",
+            "eng_name",
+            "organ_name",
+            "long_name",
+            "short_name",
+            "symbol",
+        )
         info = {key: None for key in TICKER_INFO_KEYS}
         info.update(
             {
                 "symbol": ticker,
                 "shortName": short_name,
-                "longName": short_name,
+                "longName": long_name,
                 "exchange": _first_row_value(row, "exchange"),
                 "quoteType": "EQUITY",
                 "currency": "VND",
                 "market": "vn",
-                "volume": safe_float(_first_row_value(row, "listed_volume", "outstanding_shares")),
+                "sector": _first_row_value(
+                    row, "sector", "vi_sector", "icb_name2", "icb_name3"
+                ),
+                "industry": _first_row_value(
+                    row, "industry", "industry_en", "icb_name3", "icb_name4"
+                ),
+                "marketCap": safe_float(_first_row_value(row, "market_cap", "marketCap")),
             }
         )
         return info
 
     def _map_quote_info(self, ticker: str, row: pd.Series, kind: TickerKind) -> dict[str, Any]:
         quote_type = {"equity": "EQUITY", "index": "INDEX", "etf": "ETF"}[kind]
-        return {
-            "symbol": ticker,
-            "shortName": _first_row_value(row, "symbol", "short_name"),
-            "longName": _first_row_value(row, "symbol", "short_name"),
-            "exchange": _first_row_value(row, "exchange", "exchange_name"),
-            "quoteType": quote_type,
-            "currency": "VND",
-            "market": "vn",
-            "previousClose": safe_float(
-                _first_row_value(row, "reference_price", "previous_close")
-            ),
-            "regularMarketPrice": safe_float(
-                _first_row_value(row, "close_price", "match_price", "close")
-            ),
-            "fiftyTwoWeekHigh": safe_float(_first_row_value(row, "high_price", "year_high")),
-            "fiftyTwoWeekLow": safe_float(_first_row_value(row, "low_price", "year_low")),
-            "volume": safe_float(
-                _first_row_value(row, "volume_accumulated", "volume_last", "volume")
-            ),
+        info = {key: None for key in TICKER_INFO_KEYS}
+        info.update(
+            {
+                "symbol": ticker,
+                "shortName": _first_row_value(row, "short_name", "symbol"),
+                "longName": _first_row_value(row, "short_name", "symbol"),
+                "exchange": _first_row_value(row, "exchange", "exchange_name"),
+                "quoteType": quote_type,
+                "currency": "VND",
+                "market": "vn",
+                "marketCap": safe_float(_first_row_value(row, "market_cap", "marketCap")),
+                "previousClose": safe_float(
+                    _first_row_value(row, "reference_price", "previous_close")
+                ),
+                "regularMarketPrice": safe_float(
+                    _first_row_value(row, "close_price", "match_price", "close")
+                ),
+                "fiftyTwoWeekHigh": safe_float(
+                    _first_row_value(row, "year_high", "fifty_two_week_high", "high_price")
+                ),
+                "fiftyTwoWeekLow": safe_float(
+                    _first_row_value(row, "year_low", "fifty_two_week_low", "low_price")
+                ),
+                "trailingPE": safe_float(_first_row_value(row, "pe", "trailing_pe")),
+                "dividendYield": safe_float(
+                    _first_row_value(row, "dividend_yield", "dividendYield")
+                ),
+                "volume": safe_float(
+                    _first_row_value(row, "volume_accumulated", "volume_last", "volume")
+                ),
+                "averageVolume": safe_float(
+                    _first_row_value(row, "average_volume", "avg_volume", "averageVolume")
+                ),
+            }
+        )
+        return info
+
+    @staticmethod
+    def _merge_equity_info(
+        profile_info: dict[str, Any],
+        quote_info: dict[str, Any],
+        *,
+        outstanding_shares: float | None = None,
+    ) -> dict[str, Any]:
+        """Company profile for identity; quote for live market fields."""
+        merged = {key: None for key in TICKER_INFO_KEYS}
+        quote_price_keys = {
+            "previousClose",
+            "regularMarketPrice",
+            "fiftyTwoWeekHigh",
+            "fiftyTwoWeekLow",
+            "volume",
+            "averageVolume",
+            "trailingPE",
+            "dividendYield",
         }
+        for key, value in profile_info.items():
+            if key in TICKER_INFO_KEYS and value is not None:
+                merged[key] = value
+        for key, value in quote_info.items():
+            if value is None:
+                continue
+            if key in quote_price_keys or merged.get(key) is None:
+                merged[key] = value
+        if (
+            merged.get("marketCap") is None
+            and outstanding_shares
+            and merged.get("regularMarketPrice")
+        ):
+            merged["marketCap"] = outstanding_shares * merged["regularMarketPrice"]
+        return merged
