@@ -16,11 +16,11 @@ def test_get_market_data_provider_yfinance() -> None:
 
 
 def test_get_market_data_provider_vnstock() -> None:
-    settings = Settings(market_data_provider="vnstock", vnstock_api_key="vnstock_test_key")
+    settings = Settings(market_data_provider="vnstock")
     with patch("app.services.market_data.vnstock_provider.VnstockClient") as mock_client:
         provider = get_market_data_provider(settings)
     assert isinstance(provider, VnstockProvider)
-    mock_client.assert_called_once_with(api_key="vnstock_test_key")
+    mock_client.assert_called_once_with()
 
 
 def test_get_market_data_client_vnstock() -> None:
@@ -28,5 +28,5 @@ def test_get_market_data_client_vnstock() -> None:
     with patch("app.services.market_data.factory.VnstockClient") as mock_client:
         mock_client.return_value = MagicMock()
         client = get_market_data_client(settings)
-    mock_client.assert_called_once_with(api_key=None)
+    mock_client.assert_called_once_with()
     assert client is mock_client.return_value

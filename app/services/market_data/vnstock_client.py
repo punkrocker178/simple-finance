@@ -7,6 +7,8 @@ from typing import Any, Literal
 
 import pandas as pd
 
+from app.core.config import Settings, get_settings
+
 from app.services.market_data.yfinance_client import (
     TICKER_INFO_KEYS,
     MarketDataError,
@@ -65,9 +67,24 @@ def _classify_ticker(ticker: str) -> tuple[str, TickerKind]:
     return symbol, "equity"
 
 
-def _configure_vnstock_api_key(api_key: str | None) -> None:
+_configured_api_key: str | None = None
+
+
+def init_vnstock(settings: Settings | None = None) -> None:
+    """Register vnstock API key once at application startup."""
+    settings = settings or get_settings()
+    if settings.market_data_provider.lower().strip() != "vnstock":
+        return
+
+    api_key = settings.vnstock_api_key.strip()
     if not api_key:
         return
+
+    global _configured_api_key
+    if _configured_api_key == api_key:
+        return
+    _configured_api_key = api_key
+
     try:
         from vnai import setup_api_key
 
@@ -158,8 +175,7 @@ def _first_row_value(row: pd.Series, *keys: str) -> Any:
 
 
 class VnstockClient:
-    def __init__(self, api_key: str | None = None) -> None:
-        _configure_vnstock_api_key(api_key)
+    def __init__(self) -> None:
         from vnstock import Market, Reference
 
         self._market = Market()

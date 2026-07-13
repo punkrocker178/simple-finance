@@ -58,6 +58,10 @@ class BacktestReport(BaseModel):
     ticker: str
     strategy: str = "aggressive_dca"
     visualization: VisualizationMode
+    start_date: date
+    end_date: date
+    effective_start_date: date | None = None
+    effective_end_date: date | None = None
     params: dict[str, Any]
     metrics: dict[str, StrategyMetrics | dict[str, Any]]
     series: dict[str, Any] | None = None
@@ -71,6 +75,8 @@ class BacktestRunSummary(BaseModel):
     strategy: str
     start_date: date
     end_date: date
+    effective_start_date: date | None = None
+    effective_end_date: date | None = None
     created_at: datetime
     sharpe: float | None = None
     cagr: float | None = None

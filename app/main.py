@@ -6,6 +6,7 @@ from fastapi import FastAPI
 from app.api.routes import backtest, health, market
 from app.core.config import get_settings
 from app.core.db import init_db
+from app.services.market_data.vnstock_client import init_vnstock
 
 
 def _configure_logging() -> None:
@@ -19,6 +20,7 @@ def _configure_logging() -> None:
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
     init_db()
+    init_vnstock(get_settings())
     yield
 
 

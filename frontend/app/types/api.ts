@@ -115,6 +115,10 @@ export interface BacktestReport {
   ticker: string
   strategy: string
   visualization: VisualizationMode | string
+  start_date: string
+  end_date: string
+  effective_start_date?: string | null
+  effective_end_date?: string | null
   params: Record<string, unknown>
   metrics: Record<string, StrategyMetrics | Record<string, unknown>>
   series?: BacktestSeries | null
@@ -128,6 +132,8 @@ export interface BacktestRunSummary {
   strategy: string
   start_date: string
   end_date: string
+  effective_start_date?: string | null
+  effective_end_date?: string | null
   created_at: string
   sharpe?: number | null
   cagr?: number | null

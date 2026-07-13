@@ -117,6 +117,8 @@ def build_backtest_report(
         "metrics": build_metrics(
             agg_dca_df, std_dca_df, benchmark_df, annual_rf_rate=annual_rf_rate
         ),
+        "effective_start_date": agg_dca_df.index[0].strftime("%Y-%m-%d"),
+        "effective_end_date": agg_dca_df.index[-1].strftime("%Y-%m-%d"),
         "series": None,
         "images": None,
     }

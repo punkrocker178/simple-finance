@@ -62,7 +62,14 @@ async function onSubmit() {
       <BacktestMetricsCards :metrics="store.lastReport.metrics" />
 
       <ClientOnly>
-        <ChartsBacktestSeriesChart v-if="series" :series="series" />
+        <ChartsBacktestSeriesChart
+          v-if="series"
+          :series="series"
+          :start-date="store.lastReport.start_date"
+          :end-date="store.lastReport.end_date"
+          :effective-start-date="store.lastReport.effective_start_date"
+          :effective-end-date="store.lastReport.effective_end_date"
+        />
         <template #fallback>
           <div class="flex h-96 items-center justify-center rounded-lg border border-dashed border-gray-300 text-gray-500">
             Loading chart…

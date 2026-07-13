@@ -23,7 +23,34 @@ use([
 
 const props = defineProps<{
   series: BacktestSeries
+  startDate?: string | null
+  endDate?: string | null
+  effectiveStartDate?: string | null
+  effectiveEndDate?: string | null
 }>()
+
+function fmtDate(value: string | null | undefined): string {
+  if (!value) return ''
+  return new Date(`${value}T00:00:00`).toLocaleDateString()
+}
+
+const periodLabel = computed(() => {
+  const effectiveStart = props.effectiveStartDate
+  const effectiveEnd = props.effectiveEndDate
+  if (!effectiveStart || !effectiveEnd) return null
+
+  const simulated = `${fmtDate(effectiveStart)} – ${fmtDate(effectiveEnd)}`
+  const requestedStart = props.startDate
+  const requestedEnd = props.endDate
+  if (
+    requestedStart
+    && requestedEnd
+    && (requestedStart !== effectiveStart || requestedEnd !== effectiveEnd)
+  ) {
+    return `Simulated period: ${simulated} · Requested range: ${fmtDate(requestedStart)} – ${fmtDate(requestedEnd)}`
+  }
+  return `Period: ${simulated}`
+})
 
 const ready = ref(false)
 
@@ -84,6 +111,9 @@ const option = computed(() => {
 
 <template>
   <div class="chart-host">
+    <p v-if="periodLabel" class="mb-2 text-sm text-gray-600">
+      {{ periodLabel }}
+    </p>
     <VChart v-if="ready" :option="option" autoresize />
   </div>
 </template>

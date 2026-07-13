@@ -34,6 +34,17 @@ const series = computed(() => report.value?.series as BacktestSeries | null | un
           · {{ new Date(report.created_at).toLocaleString() }}
         </span>
       </p>
+      <p
+        v-if="report?.effective_start_date && report?.effective_end_date"
+        class="mt-1 text-sm text-gray-500"
+      >
+        Simulated {{ report.effective_start_date }} – {{ report.effective_end_date }}
+        <span
+          v-if="report.start_date !== report.effective_start_date || report.end_date !== report.effective_end_date"
+        >
+          (requested {{ report.start_date }} – {{ report.end_date }})
+        </span>
+      </p>
     </div>
 
     <v-progress-linear v-if="pending" indeterminate color="primary" />
@@ -51,7 +62,14 @@ const series = computed(() => report.value?.series as BacktestSeries | null | un
       <BacktestMetricsCards :metrics="report.metrics" />
 
       <ClientOnly>
-        <ChartsBacktestSeriesChart v-if="series" :series="series" />
+        <ChartsBacktestSeriesChart
+          v-if="series"
+          :series="series"
+          :start-date="report.start_date"
+          :end-date="report.end_date"
+          :effective-start-date="report.effective_start_date"
+          :effective-end-date="report.effective_end_date"
+        />
         <template #fallback>
           <div class="flex h-96 items-center justify-center rounded-lg border border-dashed border-gray-300 text-gray-500">
             Loading chart…

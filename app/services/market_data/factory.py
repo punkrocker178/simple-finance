@@ -43,7 +43,7 @@ def get_market_data_provider(settings: Settings | None = None) -> MarketDataProv
     if provider == "yfinance":
         return YFinanceProvider()
     if provider == "vnstock":
-        return VnstockProvider(api_key=settings.vnstock_api_key or None)
+        return VnstockProvider()
     raise ValueError(f"Unsupported market_data_provider: {settings.market_data_provider}")
 
 
@@ -53,7 +53,7 @@ def get_market_data_client(settings: Settings | None = None) -> MarketDataClient
     if provider == "yfinance":
         return YFinanceClient()
     if provider == "vnstock":
-        return VnstockClient(api_key=settings.vnstock_api_key or None)
+        return VnstockClient()
     if provider == "http":
         raise ValueError(
             "MARKET_DATA_PROVIDER=http only supports OHLCV backtests; "

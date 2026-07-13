@@ -27,8 +27,8 @@ function fmtSharpe(value: number | null | undefined): string {
     :loading="loading"
     :headers="[
       { title: 'Ticker', key: 'ticker' },
-      { title: 'Start', key: 'start_date' },
-      { title: 'End', key: 'end_date' },
+      { title: 'Requested', key: 'start_date' },
+      { title: 'Simulated', key: 'effective_start_date' },
       { title: 'Sharpe', key: 'sharpe' },
       { title: 'CAGR', key: 'cagr' },
       { title: 'Return', key: 'total_return_pct' },
@@ -40,6 +40,15 @@ function fmtSharpe(value: number | null | undefined): string {
     class="rounded-lg"
     @click:row="(_e: Event, row: { item: BacktestRunSummary }) => emit('select', row.item.id)"
   >
+    <template #item.start_date="{ item }">
+      {{ item.start_date }} – {{ item.end_date }}
+    </template>
+    <template #item.effective_start_date="{ item }">
+      <span v-if="item.effective_start_date">
+        {{ item.effective_start_date }} – {{ item.effective_end_date }}
+      </span>
+      <span v-else class="text-gray-400">—</span>
+    </template>
     <template #item.sharpe="{ item }">
       {{ fmtSharpe(item.sharpe) }}
     </template>
