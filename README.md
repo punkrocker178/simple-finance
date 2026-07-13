@@ -1,6 +1,6 @@
 # Simple Finance
 
-FastAPI app for market data (yfinance wrapper) and Aggressive DCA backtesting with persisted results. Nuxt 4 frontend under `frontend/`.
+FastAPI app for market data (yfinance or vnstock) and Aggressive DCA backtesting with persisted results. Nuxt 4 frontend under `frontend/`.
 
 ## Setup
 
@@ -45,7 +45,7 @@ npm run dev
 
 | Method | Path | Description |
 |--------|------|-------------|
-| GET | `/api/v1/market/tickers/search?q=&limit=` | Search Vietnamese tickers (yfinance) |
+| GET | `/api/v1/market/tickers/search?q=&limit=` | Search Vietnamese tickers |
 | GET | `/api/v1/market/tickers/{ticker}` | Ticker info |
 | GET | `/api/v1/market/tickers/{ticker}/ohlcv?start=&end=` | OHLCV bars |
 | GET | `/api/v1/market/summary?symbols=` | Watchlist snapshot |
@@ -57,7 +57,7 @@ npm run dev
 
 ## Config
 
-See `.env.example` for `DEFAULT_TICKER`, `DATABASE_URL`, market-data provider (`yfinance` / `http`), and default `MARKET_SUMMARY_SYMBOLS` (used when `/summary` has no `symbols` param).
+See `.env.example` for `DEFAULT_TICKER`, `DATABASE_URL`, market-data provider (`yfinance` / `vnstock` / `http`), `VNSTOCK_API_KEY`, and default `MARKET_SUMMARY_SYMBOLS` (used when `/summary` has no `symbols` param).
 
 The homepage watchlist is stored in browser `localStorage` (`sf-watchlist`); add/remove tickers via the UI and pass the saved symbols to `/summary?symbols=`.
 
@@ -76,3 +76,9 @@ alembic upgrade head
 ```
 
 On first API start, tables are also created via `init_db()` if missing.
+
+## AI agents
+
+- Project conventions: [`AGENTS.md`](AGENTS.md)
+- Vnstock library guide: [`docs/AGENTS.md`](docs/AGENTS.md) and [`docs/`](docs/)
+- Vnstock skills: [`.cursor/skills/`](.cursor/skills/) (auto-discovered by Cursor)

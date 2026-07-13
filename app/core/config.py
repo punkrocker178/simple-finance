@@ -15,6 +15,7 @@ class Settings(BaseSettings):
     database_url: str = "sqlite:///./simple_finance.db"
 
     market_data_provider: str = "yfinance"
+    vnstock_api_key: str = ""
     market_data_base_url: str = "https://api.example.com"
     market_data_ohlcv_path: str = "/v1/ohlcv/{ticker}"
     market_data_api_key: str = ""

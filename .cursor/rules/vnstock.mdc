@@ -1,0 +1,13 @@
+---
+description: Vnstock docs and skills — use when working with Vietnamese market data or vnstock libraries
+globs: app/services/market_data/**,docs/**,.cursor/skills/vnstock-*/**,dca_test.py
+alwaysApply: false
+---
+
+# Vnstock guidance
+
+1. Read [docs/AGENTS.md](docs/AGENTS.md) for license tiers, installation, and API conventions.
+2. Load the matching skill from `.cursor/skills/` (see root [AGENTS.md](AGENTS.md) table) before implementing.
+3. Pull API details from `docs/vnstock*/` on demand — do not guess method names.
+4. For sponsored tier: `show_api()` and `show_doc()` before writing `vnstock_data` code.
+5. App integration point: `app/services/market_data/vnstock_client.py` — keep vnstock calls behind this facade.

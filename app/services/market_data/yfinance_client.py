@@ -45,7 +45,14 @@ def _clip_ohlcv_to_end_date(df: pd.DataFrame, end_date: str) -> pd.DataFrame:
 
 
 class YFinanceClient:
-    def get_ohlcv(self, ticker: str, start_date: str, end_date: str) -> pd.DataFrame:
+    def get_ohlcv(
+        self,
+        ticker: str,
+        start_date: str,
+        end_date: str,
+        *,
+        length: str | int | None = None,
+    ) -> pd.DataFrame:
         """Fetch OHLCV. On sparse/empty ranged history, tries shorter period fallbacks."""
         stock = yf.Ticker(ticker)
 

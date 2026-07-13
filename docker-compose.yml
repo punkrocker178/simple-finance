@@ -6,6 +6,7 @@ services:
     environment:
       DATABASE_URL: sqlite:////data/simple_finance.db
       MARKET_DATA_PROVIDER: ${MARKET_DATA_PROVIDER:-yfinance}
+      VNSTOCK_API_KEY: ${VNSTOCK_API_KEY:-}
       MARKET_SUMMARY_SYMBOLS: ${MARKET_SUMMARY_SYMBOLS:-E1VFVN30.VN,FUEVFVND.VN,^VNINDEX.VN}
       DEFAULT_TICKER: ${DEFAULT_TICKER:-E1VFVN30.VN}
     volumes:
