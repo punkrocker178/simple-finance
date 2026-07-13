@@ -9,13 +9,13 @@ import pandas as pd
 
 from app.core.config import Settings, get_settings
 
-from app.services.market_data.yfinance_client import (
+from app.services.market_data.common import (
     TICKER_INFO_KEYS,
     MarketDataError,
-    YFinanceClient,
-    _clip_ohlcv_to_end_date,
-    _normalize_vn_symbol,
-    _safe_float,
+    clip_ohlcv_to_end_date,
+    normalize_vn_symbol,
+    ohlcv_to_records as _ohlcv_to_records,
+    safe_float,
 )
 
 TickerKind = Literal["equity", "index", "etf"]
@@ -211,7 +211,7 @@ class VnstockClient:
         if df.empty:
             raise MarketDataError(f"No data found for {ticker}.")
 
-        df = _clip_ohlcv_to_end_date(df, end_date)
+        df = clip_ohlcv_to_end_date(df, end_date)
         if df.empty:
             raise MarketDataError(f"No data found for {ticker}.")
         return df
@@ -246,20 +246,20 @@ class VnstockClient:
         row = quote.iloc[0]
         return {
             "symbol": ticker,
-            "last_price": _safe_float(
+            "last_price": safe_float(
                 _first_row_value(row, "close_price", "match_price", "close", "price")
             ),
-            "previous_close": _safe_float(
+            "previous_close": safe_float(
                 _first_row_value(row, "reference_price", "previous_close", "prev_close")
             ),
-            "open": _safe_float(_first_row_value(row, "open_price", "open")),
-            "day_high": _safe_float(_first_row_value(row, "high_price", "high", "day_high")),
-            "day_low": _safe_float(_first_row_value(row, "low_price", "low", "day_low")),
-            "year_high": _safe_float(_first_row_value(row, "year_high", "fifty_two_week_high")),
-            "year_low": _safe_float(_first_row_value(row, "year_low", "fifty_two_week_low")),
+            "open": safe_float(_first_row_value(row, "open_price", "open")),
+            "day_high": safe_float(_first_row_value(row, "high_price", "high", "day_high")),
+            "day_low": safe_float(_first_row_value(row, "low_price", "low", "day_low")),
+            "year_high": safe_float(_first_row_value(row, "year_high", "fifty_two_week_high")),
+            "year_low": safe_float(_first_row_value(row, "year_low", "fifty_two_week_low")),
             "currency": _first_row_value(row, "currency") or "VND",
             "exchange": _first_row_value(row, "exchange", "exchange_name", "exchange_code_mic"),
-            "market_cap": _safe_float(_first_row_value(row, "market_cap", "marketCap")),
+            "market_cap": safe_float(_first_row_value(row, "market_cap", "marketCap")),
         }
 
     def search_vn_tickers(self, query: str, limit: int = 20) -> list[dict[str, Any]]:
@@ -279,7 +279,7 @@ class VnstockClient:
             raw_symbol = str(_first_row_value(row, "symbol", "RT00S") or "").strip().upper()
             if not raw_symbol:
                 continue
-            symbol = _normalize_vn_symbol(raw_symbol)
+            symbol = normalize_vn_symbol(raw_symbol)
             if symbol in seen:
                 continue
             seen.add(symbol)
@@ -311,7 +311,7 @@ class VnstockClient:
 
     @staticmethod
     def ohlcv_to_records(df: pd.DataFrame) -> list[dict[str, Any]]:
-        return YFinanceClient.ohlcv_to_records(df)
+        return _ohlcv_to_records(df)
 
     def _fetch_quote(self, symbol: str, kind: TickerKind) -> pd.DataFrame | None:
         if kind == "index":
@@ -332,7 +332,7 @@ class VnstockClient:
                 "quoteType": "EQUITY",
                 "currency": "VND",
                 "market": "vn",
-                "volume": _safe_float(_first_row_value(row, "listed_volume", "outstanding_shares")),
+                "volume": safe_float(_first_row_value(row, "listed_volume", "outstanding_shares")),
             }
         )
         return info
@@ -347,15 +347,15 @@ class VnstockClient:
             "quoteType": quote_type,
             "currency": "VND",
             "market": "vn",
-            "previousClose": _safe_float(
+            "previousClose": safe_float(
                 _first_row_value(row, "reference_price", "previous_close")
             ),
-            "regularMarketPrice": _safe_float(
+            "regularMarketPrice": safe_float(
                 _first_row_value(row, "close_price", "match_price", "close")
             ),
-            "fiftyTwoWeekHigh": _safe_float(_first_row_value(row, "high_price", "year_high")),
-            "fiftyTwoWeekLow": _safe_float(_first_row_value(row, "low_price", "year_low")),
-            "volume": _safe_float(
+            "fiftyTwoWeekHigh": safe_float(_first_row_value(row, "high_price", "year_high")),
+            "fiftyTwoWeekLow": safe_float(_first_row_value(row, "low_price", "year_low")),
+            "volume": safe_float(
                 _first_row_value(row, "volume_accumulated", "volume_last", "volume")
             ),
         }

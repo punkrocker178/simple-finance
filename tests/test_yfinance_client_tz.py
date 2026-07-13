@@ -69,9 +69,9 @@ def test_clip_ohlcv_to_end_date_includes_intraday_bars_on_last_day() -> None:
         index=idx,
     )
 
-    from app.services.market_data.yfinance_client import _clip_ohlcv_to_end_date
+    from app.services.market_data.common import clip_ohlcv_to_end_date
 
-    clipped = _clip_ohlcv_to_end_date(df, "2026-07-10")
+    clipped = clip_ohlcv_to_end_date(df, "2026-07-10")
     assert len(clipped) == 4
     assert clipped.index[-1] == pd.Timestamp("2026-07-10 13:00:00")
 

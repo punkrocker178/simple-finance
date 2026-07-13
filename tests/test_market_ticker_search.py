@@ -7,17 +7,17 @@ from unittest.mock import MagicMock, patch
 from fastapi.testclient import TestClient
 
 from app.main import app
+from app.services.market_data.common import normalize_vn_symbol
 from app.services.market_data.yfinance_client import (
     YFinanceClient,
     _is_vietnam_quote,
-    _normalize_vn_symbol,
 )
 
 
 def test_normalize_vn_symbol_appends_suffix() -> None:
-    assert _normalize_vn_symbol("vnm") == "VNM.VN"
-    assert _normalize_vn_symbol("E1VFVN30.VN") == "E1VFVN30.VN"
-    assert _normalize_vn_symbol("^VNINDEX.VN") == "^VNINDEX.VN"
+    assert normalize_vn_symbol("vnm") == "VNM.VN"
+    assert normalize_vn_symbol("E1VFVN30.VN") == "E1VFVN30.VN"
+    assert normalize_vn_symbol("^VNINDEX.VN") == "^VNINDEX.VN"
 
 
 def test_is_vietnam_quote_by_suffix_or_exchange() -> None:

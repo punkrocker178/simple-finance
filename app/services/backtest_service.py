@@ -16,7 +16,7 @@ from app.services.dca.report import VisualizationMode, build_backtest_report
 from app.services.dca.strategy import run_aggressive_dca, run_benchmark, run_standard_dca
 from app.services.market_data.base import MarketDataProvider
 from app.services.market_data.factory import get_market_data_provider
-from app.services.market_data.yfinance_client import MarketDataError
+from app.services.market_data.common import MarketDataError
 
 logger = logging.getLogger(__name__)
 

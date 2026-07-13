@@ -11,7 +11,7 @@ from app.api.schemas.market import (
 )
 from app.core.config import get_settings
 from app.services.market_data.factory import get_market_data_client
-from app.services.market_data.yfinance_client import MarketDataError
+from app.services.market_data.common import MarketDataError
 
 router = APIRouter()
 

@@ -15,7 +15,7 @@ import httpx
 import pandas as pd
 
 from app.core.config import Settings
-from app.services.market_data.yfinance_client import MarketDataError
+from app.services.market_data.common import MarketDataError
 
 
 class HttpProvider:

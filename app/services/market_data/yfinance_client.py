@@ -7,41 +7,18 @@ from typing import Any
 import pandas as pd
 import yfinance as yf
 
-TICKER_INFO_KEYS = (
-    "symbol",
-    "shortName",
-    "longName",
-    "exchange",
-    "quoteType",
-    "currency",
-    "market",
-    "sector",
-    "industry",
-    "marketCap",
-    "previousClose",
-    "regularMarketPrice",
-    "fiftyTwoWeekHigh",
-    "fiftyTwoWeekLow",
-    "trailingPE",
-    "dividendYield",
-    "volume",
-    "averageVolume",
+from app.services.market_data.common import (
+    TICKER_INFO_KEYS,
+    MarketDataError,
+    clip_ohlcv_to_end_date,
+    normalize_vn_symbol,
+    ohlcv_to_records as _ohlcv_to_records,
+    safe_float,
 )
-
-
-class MarketDataError(Exception):
-    """Raised when market data cannot be retrieved or normalized."""
-
 
 OHLCV_PERIOD_FALLBACKS = ("max", "1y", "1mo", "5d")
 OHLCV_FIVE_DAY_ONLY_TICKERS = frozenset({"^VNINDEX.VN"})
 VN_EXCHANGES = frozenset({"VSE", "HOSE", "HNX", "UPCOM"})
-
-
-def _clip_ohlcv_to_end_date(df: pd.DataFrame, end_date: str) -> pd.DataFrame:
-    """Include all bars on end_date, including intraday timestamps after midnight."""
-    end_exclusive = pd.Timestamp(end_date) + pd.Timedelta(days=1)
-    return df[df.index < end_exclusive]
 
 
 class YFinanceClient:
@@ -70,7 +47,7 @@ class YFinanceClient:
 
         if not df.empty:
             df = self._normalize_ohlcv_index(df)
-            df = _clip_ohlcv_to_end_date(df, end_date)
+            df = clip_ohlcv_to_end_date(df, end_date)
 
         if df.empty:
             raise MarketDataError(f"No data found for {ticker}.")
@@ -117,16 +94,16 @@ class YFinanceClient:
 
         return {
             "symbol": ticker,
-            "last_price": _safe_float(fast.get("last_price") or fast.get("lastPrice")),
-            "previous_close": _safe_float(fast.get("previous_close") or fast.get("previousClose")),
-            "open": _safe_float(fast.get("open")),
-            "day_high": _safe_float(fast.get("day_high") or fast.get("dayHigh")),
-            "day_low": _safe_float(fast.get("day_low") or fast.get("dayLow")),
-            "year_high": _safe_float(fast.get("year_high") or fast.get("yearHigh")),
-            "year_low": _safe_float(fast.get("year_low") or fast.get("yearLow")),
+            "last_price": safe_float(fast.get("last_price") or fast.get("lastPrice")),
+            "previous_close": safe_float(fast.get("previous_close") or fast.get("previousClose")),
+            "open": safe_float(fast.get("open")),
+            "day_high": safe_float(fast.get("day_high") or fast.get("dayHigh")),
+            "day_low": safe_float(fast.get("day_low") or fast.get("dayLow")),
+            "year_high": safe_float(fast.get("year_high") or fast.get("yearHigh")),
+            "year_low": safe_float(fast.get("year_low") or fast.get("yearLow")),
             "currency": fast.get("currency"),
             "exchange": fast.get("exchange"),
-            "market_cap": _safe_float(fast.get("market_cap") or fast.get("marketCap")),
+            "market_cap": safe_float(fast.get("market_cap") or fast.get("marketCap")),
         }
 
     def search_vn_tickers(self, query: str, limit: int = 20) -> list[dict[str, Any]]:
@@ -138,7 +115,7 @@ class YFinanceClient:
         for quote in search.quotes:
             if not _is_vietnam_quote(quote):
                 continue
-            symbol = _normalize_vn_symbol(quote.get("symbol", ""))
+            symbol = normalize_vn_symbol(quote.get("symbol", ""))
             if not symbol or symbol in seen:
                 continue
             seen.add(symbol)
@@ -167,18 +144,7 @@ class YFinanceClient:
 
     @staticmethod
     def ohlcv_to_records(df: pd.DataFrame) -> list[dict[str, Any]]:
-        records: list[dict[str, Any]] = []
-        for idx, row in df.iterrows():
-            records.append(
-                {
-                    "date": pd.Timestamp(idx).strftime("%Y-%m-%d"),
-                    "open": float(row["Open"]),
-                    "high": float(row["High"]),
-                    "low": float(row["Low"]),
-                    "close": float(row["Close"]),
-                }
-            )
-        return records
+        return _ohlcv_to_records(df)
 
 
 def _is_vietnam_quote(quote: dict[str, Any]) -> bool:
@@ -187,21 +153,3 @@ def _is_vietnam_quote(quote: dict[str, Any]) -> bool:
         return True
     exchange = str(quote.get("exchange", "")).upper()
     return exchange in VN_EXCHANGES
-
-
-def _normalize_vn_symbol(symbol: str) -> str:
-    symbol = symbol.strip().upper()
-    if not symbol:
-        return ""
-    if symbol.endswith(".VN") or symbol.startswith("^"):
-        return symbol
-    return f"{symbol}.VN"
-
-
-def _safe_float(value: Any) -> float | None:
-    if value is None:
-        return None
-    try:
-        return float(value)
-    except (TypeError, ValueError):
-        return None
