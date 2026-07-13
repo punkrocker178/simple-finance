@@ -15,6 +15,7 @@ const loading = ref(false)
 const duplicateHint = ref(false)
 
 let debounceTimer: ReturnType<typeof setTimeout> | undefined
+let abortController: AbortController | undefined
 
 watch(search, (query) => {
   duplicateHint.value = false
@@ -27,17 +28,28 @@ watch(search, (query) => {
   debounceTimer = setTimeout(() => void fetchResults(trimmed), 300)
 })
 
+onBeforeUnmount(() => {
+  if (debounceTimer) clearTimeout(debounceTimer)
+  abortController?.abort()
+})
+
 async function fetchResults(query: string) {
+  abortController?.abort()
+  abortController = new AbortController()
+  const { signal } = abortController
   loading.value = true
   try {
     const data = await apiFetch<TickerSearchResponse>('/api/v1/market/tickers/search', {
       query: { q: query, limit: 20 },
+      signal,
     })
+    if (signal.aborted) return
     items.value = data.items
   } catch {
+    if (signal.aborted) return
     items.value = []
   } finally {
-    loading.value = false
+    if (!signal.aborted) loading.value = false
   }
 }
 
