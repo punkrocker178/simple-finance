@@ -1,6 +1,12 @@
 <script setup lang="ts">
 import { useApi } from '~/composables/useApi'
 import type { OhlcvResponse, TickerInfo } from '~/types/api'
+import {
+  earliestStartForEnd,
+  ohlcvDateError,
+  todayDateInput,
+  yearsBefore,
+} from '~/utils/ohlcvDateRange'
 
 const route = useRoute()
 const ticker = computed(() => String(route.params.ticker))
@@ -12,37 +18,12 @@ useSeoMeta({
 
 const { apiFetch } = useApi()
 
-/** vnstock history tops out ~9y; keep 8y headroom. */
-const MAX_HISTORY_YEARS = 8
-
-function toDateInput(d: Date): string {
-  const y = d.getFullYear()
-  const m = String(d.getMonth() + 1).padStart(2, '0')
-  const day = String(d.getDate()).padStart(2, '0')
-  return `${y}-${m}-${day}`
-}
-
-function yearsBefore(dateStr: string, years: number): string {
-  const d = new Date(`${dateStr}T00:00:00`)
-  d.setFullYear(d.getFullYear() - years)
-  return toDateInput(d)
-}
-
-const today = toDateInput(new Date())
+const today = todayDateInput()
 const endDate = ref(today)
 const startDate = ref(yearsBefore(today, 2))
 
-const earliestStart = computed(() => yearsBefore(endDate.value || today, MAX_HISTORY_YEARS))
-
-const dateError = computed(() => {
-  if (!startDate.value || !endDate.value) return 'Start and end dates are required'
-  if (endDate.value > today) return 'End cannot be in the future'
-  if (startDate.value > endDate.value) return 'Start must be on or before end'
-  if (startDate.value < earliestStart.value) {
-    return `Start cannot be more than ${MAX_HISTORY_YEARS} years before end`
-  }
-  return null
-})
+const earliestStart = computed(() => earliestStartForEnd(endDate.value))
+const dateError = computed(() => ohlcvDateError(startDate.value, endDate.value))
 
 const { data: info, error: infoError } = await useAsyncData(
   () => `ticker-info-${ticker.value}`,

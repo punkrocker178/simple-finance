@@ -1,5 +1,10 @@
 <script setup lang="ts">
 import type { BacktestRequest } from '~/types/api'
+import {
+  earliestStartForEnd,
+  ohlcvDateError,
+  todayDateInput,
+} from '~/utils/ohlcvDateRange'
 
 const model = defineModel<BacktestRequest>({ required: true })
 
@@ -10,10 +15,21 @@ defineProps<{
 const emit = defineEmits<{
   submit: []
 }>()
+
+const today = todayDateInput()
+const earliestStart = computed(() => earliestStartForEnd(model.value.end_date))
+const dateError = computed(() =>
+  ohlcvDateError(model.value.start_date, model.value.end_date),
+)
+
+function onSubmit() {
+  if (dateError.value) return
+  emit('submit')
+}
 </script>
 
 <template>
-  <v-form class="flex flex-col gap-4" @submit.prevent="emit('submit')">
+  <v-form class="flex flex-col gap-4" @submit.prevent="onSubmit">
     <div class="grid gap-4 md:grid-cols-2">
       <v-text-field v-model="model.ticker" label="Ticker" density="comfortable" />
       <v-switch v-model="model.optimize" label="Optimize parameters" color="primary" hide-details />
@@ -22,12 +38,18 @@ const emit = defineEmits<{
         label="Start date"
         type="date"
         density="comfortable"
+        :min="earliestStart"
+        :max="model.end_date"
+        hide-details
       />
       <v-text-field
         v-model="model.end_date"
         label="End date"
         type="date"
         density="comfortable"
+        :min="model.start_date"
+        :max="today"
+        hide-details
       />
       <v-text-field
         v-model.number="model.initial_cash"
@@ -73,8 +95,13 @@ const emit = defineEmits<{
         clearable
       />
     </div>
+
+    <v-alert v-if="dateError" type="warning" variant="tonal">
+      {{ dateError }}
+    </v-alert>
+
     <div>
-      <v-btn type="submit" color="primary" :loading="loading">
+      <v-btn type="submit" color="primary" :loading="loading" :disabled="!!dateError">
         Run DCA backtest
       </v-btn>
     </div>
