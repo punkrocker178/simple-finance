@@ -44,17 +44,27 @@ def test_search_vn_tickers_filters_and_normalizes() -> None:
     assert results[1]["short_name"] == "FPT Corp"
 
 
-def test_search_tickers_api_route() -> None:
-    mock_search = MagicMock()
-    mock_search.quotes = [
-        {"symbol": "E1VFVN30.VN", "shortname": "VFMVN30 ETF", "exchange": "HOSE", "quoteType": "ETF"},
+def test_search_tickers_api_route_forces_yfinance() -> None:
+    mock_client = MagicMock()
+    mock_client.search_vn_tickers.return_value = [
+        {
+            "symbol": "E1VFVN30.VN",
+            "short_name": "VFMVN30 ETF",
+            "exchange": "HOSE",
+            "quote_type": "ETF",
+        },
     ]
 
-    with patch("app.services.market_data.yfinance_client.yf.Search", return_value=mock_search):
+    with patch(
+        "app.api.routes.market.get_market_data_client",
+        return_value=mock_client,
+    ) as get_client:
         client = TestClient(app)
         resp = client.get("/api/v1/market/tickers/search", params={"q": "vfvn"})
 
     assert resp.status_code == 200
+    get_client.assert_called_once_with(provider="yfinance")
+    mock_client.search_vn_tickers.assert_called_once_with("vfvn", limit=20)
     data = resp.json()
     assert len(data["items"]) == 1
     assert data["items"][0]["symbol"] == "E1VFVN30.VN"

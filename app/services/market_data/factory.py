@@ -47,9 +47,9 @@ def get_market_data_provider(settings: Settings | None = None) -> MarketDataProv
     raise ValueError(f"Unsupported market_data_provider: {settings.market_data_provider}")
 
 
-def get_market_data_client(settings: Settings | None = None) -> MarketDataClient:
+def get_market_data_client(settings: Settings | None = None, provider: str | None = None) -> MarketDataClient:
     settings = settings or get_settings()
-    provider = settings.market_data_provider.lower().strip()
+    provider = provider or settings.market_data_provider.lower().strip()
     if provider == "yfinance":
         return YFinanceClient()
     if provider == "vnstock":

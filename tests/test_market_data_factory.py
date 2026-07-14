@@ -30,3 +30,15 @@ def test_get_market_data_client_vnstock() -> None:
         client = get_market_data_client(settings)
     mock_client.assert_called_once_with()
     assert client is mock_client.return_value
+
+
+def test_get_market_data_client_provider_override() -> None:
+    """Explicit provider wins over settings (e.g. search forces yfinance)."""
+    settings = Settings(market_data_provider="vnstock")
+    with patch("app.services.market_data.factory.YFinanceClient") as mock_yf:
+        mock_yf.return_value = MagicMock()
+        with patch("app.services.market_data.factory.VnstockClient") as mock_vn:
+            client = get_market_data_client(settings, provider="yfinance")
+    mock_yf.assert_called_once_with()
+    mock_vn.assert_not_called()
+    assert client is mock_yf.return_value

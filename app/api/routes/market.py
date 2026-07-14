@@ -16,8 +16,8 @@ from app.services.market_data.common import MarketDataError
 router = APIRouter()
 
 
-def _client():
-    return get_market_data_client()
+def _client(provider: str | None = None):
+    return get_market_data_client(provider=provider)
 
 
 @router.get("/tickers/search", response_model=TickerSearchResponse)
@@ -29,7 +29,8 @@ def search_tickers(
     if not query:
         raise HTTPException(status_code=422, detail="Query must not be empty")
     try:
-        items = _client().search_vn_tickers(query, limit=limit)
+        # Hardcode to use yfinance since vnstock requests are slower
+        items = _client(provider="yfinance").search_vn_tickers(query, limit=limit)
     except Exception as exc:
         raise HTTPException(status_code=502, detail=f"Upstream market data error: {exc}") from exc
     return TickerSearchResponse(items=items)

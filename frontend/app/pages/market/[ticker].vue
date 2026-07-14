@@ -12,12 +12,37 @@ useSeoMeta({
 
 const { apiFetch } = useApi()
 
-const endDate = ref(new Date().toISOString().slice(0, 10))
-const startDate = ref((() => {
-  const d = new Date()
-  d.setFullYear(d.getFullYear() - 2)
-  return d.toISOString().slice(0, 10)
-})())
+/** vnstock history tops out ~9y; keep 8y headroom. */
+const MAX_HISTORY_YEARS = 8
+
+function toDateInput(d: Date): string {
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
+}
+
+function yearsBefore(dateStr: string, years: number): string {
+  const d = new Date(`${dateStr}T00:00:00`)
+  d.setFullYear(d.getFullYear() - years)
+  return toDateInput(d)
+}
+
+const today = toDateInput(new Date())
+const endDate = ref(today)
+const startDate = ref(yearsBefore(today, 2))
+
+const earliestStart = computed(() => yearsBefore(endDate.value || today, MAX_HISTORY_YEARS))
+
+const dateError = computed(() => {
+  if (!startDate.value || !endDate.value) return 'Start and end dates are required'
+  if (endDate.value > today) return 'End cannot be in the future'
+  if (startDate.value > endDate.value) return 'Start must be on or before end'
+  if (startDate.value < earliestStart.value) {
+    return `Start cannot be more than ${MAX_HISTORY_YEARS} years before end`
+  }
+  return null
+})
 
 const { data: info, error: infoError } = await useAsyncData(
   () => `ticker-info-${ticker.value}`,
@@ -32,11 +57,15 @@ const {
   refresh: refreshOhlcv,
 } = await useAsyncData(
   () => `ticker-ohlcv-${ticker.value}-${startDate.value}-${endDate.value}`,
-  () =>
-    apiFetch<OhlcvResponse>(
+  () => {
+    if (dateError.value) {
+      throw createError({ statusCode: 400, message: dateError.value })
+    }
+    return apiFetch<OhlcvResponse>(
       `/api/v1/market/tickers/${encodeURIComponent(ticker.value)}/ohlcv`,
       { query: { start: startDate.value, end: endDate.value } },
-    ),
+    )
+  },
   { watch: [ticker, startDate, endDate] },
 )
 
@@ -79,6 +108,8 @@ function formatPrice(value: number | null | undefined): string {
         type="date"
         density="comfortable"
         class="max-w-xs"
+        :min="earliestStart"
+        :max="endDate"
         hide-details
       />
       <v-text-field
@@ -87,13 +118,20 @@ function formatPrice(value: number | null | undefined): string {
         type="date"
         density="comfortable"
         class="max-w-xs"
+        :min="startDate"
+        :max="today"
         hide-details
       />
       <v-btn-toggle v-model="chartMode" mandatory density="comfortable" color="primary">
         <v-btn value="candlestick">Candlestick</v-btn>
         <v-btn value="line">Line</v-btn>
       </v-btn-toggle>
-      <v-btn variant="outlined" :loading="ohlcvPending" @click="refreshOhlcv()">
+      <v-btn
+        variant="outlined"
+        :loading="ohlcvPending"
+        :disabled="!!dateError"
+        @click="refreshOhlcv()"
+      >
         Reload
       </v-btn>
       <v-btn color="primary" :to="`/backtest?ticker=${encodeURIComponent(ticker)}`">
@@ -101,7 +139,11 @@ function formatPrice(value: number | null | undefined): string {
       </v-btn>
     </div>
 
-    <v-alert v-if="ohlcvError" type="error" variant="tonal">
+    <v-alert v-if="dateError" type="warning" variant="tonal">
+      {{ dateError }}
+    </v-alert>
+
+    <v-alert v-else-if="ohlcvError" type="error" variant="tonal">
       {{ ohlcvError.message || 'Failed to load OHLCV' }}
     </v-alert>
 
