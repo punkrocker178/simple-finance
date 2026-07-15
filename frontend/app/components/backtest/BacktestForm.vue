@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { Mask, type MaskaDetail } from 'maska'
+import { vMaska } from 'maska/vue'
 import type { BacktestRequest } from '~/types/api'
 import {
   earliestStartForEnd,
@@ -27,6 +29,49 @@ const isScheduled = computed(() => model.value.strategy === 'scheduled_dca')
 
 const cashLabel = computed(() =>
   model.value.cadence === 'monthly' ? 'Monthly cash' : 'Period cash',
+)
+
+const cashMasker = new Mask({
+  number: { locale: 'en', fraction: 0, unsigned: true },
+})
+
+function formatCash(n: number | null | undefined): string {
+  return cashMasker.masked(n ?? 0)
+}
+
+function cashMask(set: (n: number) => void) {
+  return {
+    number: { locale: 'en', fraction: 0, unsigned: true },
+    onMaska: (detail: MaskaDetail) => {
+      set(detail.unmasked === '' ? 0 : Number(detail.unmasked))
+    },
+  }
+}
+
+const initialCashText = ref(formatCash(model.value.initial_cash))
+const monthlyCashText = ref(formatCash(model.value.monthly_cash))
+const initialCashMask = cashMask((n) => {
+  model.value.initial_cash = n
+})
+const monthlyCashMask = cashMask((n) => {
+  model.value.monthly_cash = n
+})
+
+watch(
+  () => model.value.initial_cash,
+  (n) => {
+    if (cashMasker.unmasked(initialCashText.value) !== String(n ?? 0)) {
+      initialCashText.value = formatCash(n)
+    }
+  },
+)
+watch(
+  () => model.value.monthly_cash,
+  (n) => {
+    if (cashMasker.unmasked(monthlyCashText.value) !== String(n ?? 0)) {
+      monthlyCashText.value = formatCash(n)
+    }
+  },
 )
 
 const weekdayItems = [
@@ -82,15 +127,19 @@ function onSubmit() {
         hide-details
       />
       <v-text-field
-        v-model.number="model.initial_cash"
+        v-model="initialCashText"
+        v-maska="initialCashMask"
         label="Initial cash"
-        type="number"
+        type="text"
+        inputmode="numeric"
         density="comfortable"
       />
       <v-text-field
-        v-model.number="model.monthly_cash"
+        v-model="monthlyCashText"
+        v-maska="monthlyCashMask"
         :label="cashLabel"
-        type="number"
+        type="text"
+        inputmode="numeric"
         density="comfortable"
       />
       <v-text-field
