@@ -27,3 +27,31 @@ def test_fee_rate_fraction_accepted() -> None:
         fee_rate=0.015,
     )
     assert body.fee_rate == 0.015
+
+
+def test_scheduled_strategy_defaults() -> None:
+    body = BacktestRequest(
+        start_date="2021-01-01",
+        end_date="2022-01-01",
+        strategy="scheduled_dca",
+    )
+    assert body.strategy == "scheduled_dca"
+    assert body.cadence == "monthly"
+    assert body.day_of_month == 1
+    assert body.weekday == 0
+    assert body.skip_after_buy_n == 0
+
+
+def test_day_of_month_out_of_range_rejected() -> None:
+    with pytest.raises(ValidationError):
+        BacktestRequest(
+            start_date="2021-01-01",
+            end_date="2022-01-01",
+            strategy="scheduled_dca",
+            day_of_month=29,
+        )
+
+
+def test_default_strategy_remains_aggressive() -> None:
+    body = BacktestRequest(start_date="2021-01-01", end_date="2022-01-01")
+    assert body.strategy == "aggressive_dca"

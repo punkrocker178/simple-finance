@@ -60,6 +60,11 @@ def create_dca_backtest(body: BacktestRequest, db: Session = Depends(get_db)) ->
             initial_cash=body.initial_cash,
             monthly_cash=body.monthly_cash,
             fee_rate=body.fee_rate,
+            strategy=body.strategy,
+            cadence=body.cadence,
+            day_of_month=body.day_of_month,
+            weekday=body.weekday,
+            skip_after_buy_n=body.skip_after_buy_n,
         )
     except BacktestServiceError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
