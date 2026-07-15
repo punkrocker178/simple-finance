@@ -1,7 +1,7 @@
 # Scheduled DCA Strategy — Design
 
 **Date:** 2026-07-14  
-**Status:** Approved (verbal); awaiting spec review
+**Status:** Approved
 
 ## Problem
 
