@@ -1,7 +1,11 @@
 <script setup lang="ts">
-import { Mask, type MaskaDetail } from 'maska'
 import { vMaska } from 'maska/vue'
 import type { BacktestRequest } from '~/types/api'
+import {
+  cashInputMask,
+  formatCash,
+  unmaskCash,
+} from '~/utils/formatCash'
 import {
   earliestStartForEnd,
   ohlcvDateError,
@@ -31,45 +35,32 @@ const cashLabel = computed(() =>
   model.value.cadence === 'monthly' ? 'Monthly cash' : 'Period cash',
 )
 
-const cashMasker = new Mask({
-  number: { locale: 'en', fraction: 0, unsigned: true },
-})
-
-function formatCash(n: number | null | undefined): string {
-  return cashMasker.masked(n ?? 0)
+function cashDisplay(n: number | null | undefined): string {
+  return formatCash(n ?? 0)
 }
 
-function cashMask(set: (n: number) => void) {
-  return {
-    number: { locale: 'en', fraction: 0, unsigned: true },
-    onMaska: (detail: MaskaDetail) => {
-      set(detail.unmasked === '' ? 0 : Number(detail.unmasked))
-    },
-  }
-}
-
-const initialCashText = ref(formatCash(model.value.initial_cash))
-const monthlyCashText = ref(formatCash(model.value.monthly_cash))
-const initialCashMask = cashMask((n) => {
+const initialCashText = ref(cashDisplay(model.value.initial_cash))
+const monthlyCashText = ref(cashDisplay(model.value.monthly_cash))
+const initialCashMask = cashInputMask((n) => {
   model.value.initial_cash = n
 })
-const monthlyCashMask = cashMask((n) => {
+const monthlyCashMask = cashInputMask((n) => {
   model.value.monthly_cash = n
 })
 
 watch(
   () => model.value.initial_cash,
   (n) => {
-    if (cashMasker.unmasked(initialCashText.value) !== String(n ?? 0)) {
-      initialCashText.value = formatCash(n)
+    if (unmaskCash(initialCashText.value) !== String(n ?? 0)) {
+      initialCashText.value = cashDisplay(n)
     }
   },
 )
 watch(
   () => model.value.monthly_cash,
   (n) => {
-    if (cashMasker.unmasked(monthlyCashText.value) !== String(n ?? 0)) {
-      monthlyCashText.value = formatCash(n)
+    if (unmaskCash(monthlyCashText.value) !== String(n ?? 0)) {
+      monthlyCashText.value = cashDisplay(n)
     }
   },
 )

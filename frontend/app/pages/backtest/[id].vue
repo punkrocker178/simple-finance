@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { useApi } from '~/composables/useApi'
 import type { BacktestReport, BacktestSeries } from '~/types/api'
+import { formatParamsCash } from '~/utils/formatCash'
 
 const route = useRoute()
 const runId = computed(() => String(route.params.id))
@@ -19,6 +20,10 @@ const { data: report, pending, error } = await useAsyncData(
 )
 
 const series = computed(() => report.value?.series as BacktestSeries | null | undefined)
+
+const formattedParams = computed(() =>
+  JSON.stringify(formatParamsCash(report.value?.params as Record<string, unknown> | undefined), null, 2),
+)
 </script>
 
 <template>
@@ -56,7 +61,7 @@ const series = computed(() => report.value?.series as BacktestSeries | null | un
     <template v-if="report">
       <div class="rounded-lg border border-gray-200 p-4 text-sm">
         <h2 class="mb-2 text-lg font-semibold">Parameters</h2>
-        <pre class="overflow-x-auto whitespace-pre-wrap">{{ JSON.stringify(report.params, null, 2) }}</pre>
+        <pre class="overflow-x-auto whitespace-pre-wrap">{{ formattedParams }}</pre>
       </div>
 
       <BacktestMetricsCards :metrics="report.metrics" />

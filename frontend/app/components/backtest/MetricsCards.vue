@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { StrategyMetrics } from '~/types/api'
+import { formatCash } from '~/utils/formatCash'
 
 const props = defineProps<{
   metrics: Record<string, StrategyMetrics | Record<string, unknown>>
@@ -22,6 +23,7 @@ const cards = computed(() =>
       cagr: m.cagr_pct,
       sharpe: m.sharpe_ratio,
       maxDd: m.max_drawdown_pct,
+      cashInjected: m.total_cash_injected,
       finalValue: m.final_portfolio_value,
       dipBuys: m.dip_buys_triggered,
     }
@@ -31,11 +33,6 @@ const cards = computed(() =>
 function fmtPct(value: number | undefined): string {
   if (value == null || Number.isNaN(value)) return '—'
   return `${value.toFixed(2)}%`
-}
-
-function fmtNum(value: number | undefined): string {
-  if (value == null || Number.isNaN(value)) return '—'
-  return value.toLocaleString(undefined, { maximumFractionDigits: 0 })
 }
 </script>
 
@@ -58,8 +55,10 @@ function fmtNum(value: number | undefined): string {
         </dd>
         <dt class="text-gray-600">Max drawdown</dt>
         <dd class="text-right font-medium">{{ fmtPct(card.maxDd) }}</dd>
+        <dt class="text-gray-600">Cash injected</dt>
+        <dd class="text-right font-medium">{{ formatCash(card.cashInjected) }}</dd>
         <dt class="text-gray-600">Final value</dt>
-        <dd class="text-right font-medium">{{ fmtNum(card.finalValue) }}</dd>
+        <dd class="text-right font-medium">{{ formatCash(card.finalValue) }}</dd>
         <template v-if="card.dipBuys != null">
           <dt class="text-gray-600">Dip buys</dt>
           <dd class="text-right font-medium">{{ card.dipBuys }}</dd>
