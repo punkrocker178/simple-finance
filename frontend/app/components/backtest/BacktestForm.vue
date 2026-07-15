@@ -143,7 +143,7 @@ function onSubmit() {
           label="Day of month"
           type="number"
           min="1"
-          max="31"
+          max="28"
           density="comfortable"
         />
         <v-select

@@ -61,7 +61,7 @@ onMounted(() => {
 })
 
 const primaryKey = computed(() =>
-  props.series.portfolio_value.scheduled_dca
+  props.series.portfolio_value.scheduled_dca != null
     ? 'scheduled_dca'
     : 'aggressive_dca',
 )
