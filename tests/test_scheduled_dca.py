@@ -46,10 +46,33 @@ def test_run_scheduled_dca_day1_initial_only_no_double_inject() -> None:
     )
     assert out.iloc[0]["Cash_Injected_Today"] == 10_000_000
     # First schedule day coincides with day-1 → still initial only
-    assert bool(out.iloc[0]["Is_Schedule_Day"]) is False or out.iloc[0]["Cash_Injected_Today"] == 10_000_000
+    assert bool(out.iloc[0]["Is_Schedule_Day"]) is False
     assert out["Execution_Signal"].sum() == 0
     assert out["Total_Cash_Deployed"].iloc[-1] > 10_000_000
     assert isinstance(sharpe, float)
+
+
+def test_gappy_index_skips_phantom_period_before_skip_n() -> None:
+    # February missing: Feb 1 would roll to Mar 1 — same as Mar target; must not
+    # count as an extra period or skip_after_buy_n alternation shifts.
+    jan = pd.bdate_range("2021-01-04", "2021-01-29")
+    mar = pd.bdate_range("2021-03-01", periods=80)
+    idx = jan.append(mar)
+    close = pd.Series(100.0, index=idx)
+    df = pd.DataFrame(
+        {"Open": close, "High": close + 1, "Low": close - 1, "Close": close},
+        index=idx,
+    )
+    mask = build_injection_mask(
+        df.index,
+        cadence="monthly",
+        day_of_month=1,
+        skip_after_buy_n=1,
+    )
+    fired = list(df.index[mask])
+    assert fired[0] == pd.Timestamp("2021-01-04")
+    assert fired[1] == pd.Timestamp("2021-04-01")
+    assert pd.Timestamp("2021-03-01") not in fired
 
 
 def test_no_schedule_days_raises() -> None:

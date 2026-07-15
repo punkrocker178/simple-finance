@@ -61,12 +61,13 @@ def build_injection_mask(
         raise ValueError(f"Unsupported cadence: {cadence}")
 
     rolled: list[pd.Timestamp] = []
-    for t in raw:
+    for i, t in enumerate(raw):
         hit = _next_trading_day(index, t)
         if hit is None:
             continue
-        # Skip if rolled past next raw target's month/week boundary ambiguity:
-        # accept hit if still before next target (when any)
+        next_raw = raw[i + 1] if i + 1 < len(raw) else None
+        if next_raw is not None and hit >= next_raw:
+            continue
         rolled.append(hit)
 
     # Dedupe while preserving order (roll collisions)
@@ -123,10 +124,6 @@ def run_scheduled_dca(
     # Day-1 initial overwrites schedule for position 0
     schedule.iloc[0] = False
 
-    if not schedule.any() and len(data) < 2:
-        # Still allow day-1-only if range is tiny but we require at least one
-        # *scheduled* injection after day-1 per spec error message when none exist.
-        raise ValueError("No scheduled injection days in range.")
     if not schedule.any():
         raise ValueError("No scheduled injection days in range.")
 
