@@ -7,6 +7,7 @@ const props = defineProps<{
 
 const labels: Record<string, string> = {
   aggressive_dca: 'Aggressive DCA',
+  scheduled_dca: 'Scheduled DCA',
   standard_dca: 'Standard DCA',
   lump_sum: 'Lump Sum',
 }

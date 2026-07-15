@@ -60,14 +60,23 @@ onMounted(() => {
   })
 })
 
+const primaryKey = computed(() =>
+  props.series.portfolio_value.scheduled_dca
+    ? 'scheduled_dca'
+    : 'aggressive_dca',
+)
+const primaryName = computed(() =>
+  primaryKey.value === 'scheduled_dca' ? 'Scheduled DCA' : 'Aggressive DCA',
+)
+
 const option = computed(() => {
   const { dates, portfolio_value, dip_buys } = props.series
 
   const seriesList: Record<string, unknown>[] = [
     {
-      name: 'Aggressive DCA',
+      name: primaryName.value,
       type: 'line',
-      data: portfolio_value.aggressive_dca,
+      data: portfolio_value[primaryKey.value],
       showSymbol: false,
     },
     {
