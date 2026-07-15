@@ -74,6 +74,11 @@ export interface BacktestRequest {
   ticker?: string | null
   start_date: string
   end_date: string
+  strategy?: 'aggressive_dca' | 'scheduled_dca'
+  cadence?: 'weekly' | 'biweekly' | 'monthly'
+  day_of_month?: number | null
+  weekday?: number | null
+  skip_after_buy_n?: number | null
   optimize?: boolean
   visualization?: VisualizationMode
   lookback?: number | null
@@ -97,12 +102,14 @@ export interface StrategyMetrics {
 export interface BacktestSeries {
   dates: string[]
   portfolio_value: {
-    aggressive_dca: number[]
+    aggressive_dca?: number[]
+    scheduled_dca?: number[]
     standard_dca: number[]
     lump_sum: number[]
   }
   drawdown_pct: {
-    aggressive_dca: number[]
+    aggressive_dca?: number[]
+    scheduled_dca?: number[]
     standard_dca: number[]
     lump_sum: number[]
   }

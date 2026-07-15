@@ -12,6 +12,7 @@ def build_performance_figure(
     std_dca_df: pd.DataFrame,
     benchmark_df: pd.DataFrame,
     title_suffix: str = "",
+    primary_label: str = "Aggressive DCA (Drawdown Dips)",
 ):
     plt.style.use("seaborn-v0_8-darkgrid")
     fig, (ax1, ax2, ax3) = plt.subplots(3, 1, figsize=(14, 15))
@@ -26,7 +27,7 @@ def build_performance_figure(
     ax1.plot(
         agg_dca_df.index,
         agg_dca_df["Portfolio_Value"],
-        label="Aggressive DCA (Drawdown Dips)",
+        label=primary_label,
         color="blue",
     )
     ax1.plot(
@@ -62,7 +63,7 @@ def build_performance_figure(
     bench_dd = (benchmark_df["Portfolio_Value"] - bench_peak) / bench_peak * 100
 
     ax2.fill_between(
-        agg_dd.index, agg_dd, 0, color="blue", alpha=0.2, label="Aggressive DCA Drawdown"
+        agg_dd.index, agg_dd, 0, color="blue", alpha=0.2, label=f"{primary_label} Drawdown"
     )
     ax2.plot(std_dd.index, std_dd, color="orange", linewidth=1.5, label="Standard DCA Drawdown")
     ax2.plot(
@@ -85,7 +86,7 @@ def build_performance_figure(
     )
 
     monthly_df = pd.DataFrame(
-        {"Aggressive DCA": agg_monthly, "Standard DCA": std_monthly, "Lump Sum": bench_monthly}
+        {primary_label: agg_monthly, "Standard DCA": std_monthly, "Lump Sum": bench_monthly}
     )
     monthly_df.index = monthly_df.index.strftime("%Y-%m")
 
@@ -108,11 +109,14 @@ def render_performance_image(
     std_dca_df: pd.DataFrame,
     benchmark_df: pd.DataFrame,
     title_suffix: str = "",
+    primary_label: str = "Aggressive DCA (Drawdown Dips)",
 ) -> dict[str, str]:
     import matplotlib
 
     matplotlib.use("Agg", force=False)
-    fig = build_performance_figure(agg_dca_df, std_dca_df, benchmark_df, title_suffix=title_suffix)
+    fig = build_performance_figure(
+        agg_dca_df, std_dca_df, benchmark_df, title_suffix=title_suffix, primary_label=primary_label
+    )
     buffer = io.BytesIO()
     try:
         fig.savefig(buffer, format="png", dpi=120, bbox_inches="tight")

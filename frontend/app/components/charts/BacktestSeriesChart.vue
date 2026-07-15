@@ -10,6 +10,13 @@ import {
 } from 'echarts/components'
 import VChart from 'vue-echarts'
 import type { BacktestSeries } from '~/types/api'
+import { formatCash } from '~/utils/formatCash'
+
+function formatCashAxis(value: number | string): string {
+  const n = typeof value === 'number' ? value : Number(value)
+  if (!Number.isFinite(n)) return String(value)
+  return formatCash(n)
+}
 
 use([
   CanvasRenderer,
@@ -60,14 +67,23 @@ onMounted(() => {
   })
 })
 
+const primaryKey = computed(() =>
+  props.series.portfolio_value.scheduled_dca != null
+    ? 'scheduled_dca'
+    : 'aggressive_dca',
+)
+const primaryName = computed(() =>
+  primaryKey.value === 'scheduled_dca' ? 'Scheduled DCA' : 'Aggressive DCA',
+)
+
 const option = computed(() => {
   const { dates, portfolio_value, dip_buys } = props.series
 
   const seriesList: Record<string, unknown>[] = [
     {
-      name: 'Aggressive DCA',
+      name: primaryName.value,
       type: 'line',
-      data: portfolio_value.aggressive_dca,
+      data: portfolio_value[primaryKey.value],
       showSymbol: false,
     },
     {
@@ -98,11 +114,18 @@ const option = computed(() => {
   }
 
   return {
-    tooltip: { trigger: 'axis' },
+    tooltip: {
+      trigger: 'axis',
+      valueFormatter: (value: number | string) => formatCashAxis(value),
+    },
     legend: { data: seriesList.map((s) => String(s.name)) },
-    grid: { left: 56, right: 24, top: 48, bottom: 64 },
+    grid: { left: 72, right: 24, top: 48, bottom: 64 },
     xAxis: { type: 'category', data: dates },
-    yAxis: { type: 'value', scale: true },
+    yAxis: {
+      type: 'value',
+      scale: true,
+      axisLabel: { formatter: (value: number) => formatCashAxis(value) },
+    },
     dataZoom: [{ type: 'inside' }, { type: 'slider' }],
     series: seriesList,
   }

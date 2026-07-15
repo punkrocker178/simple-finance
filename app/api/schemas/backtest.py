@@ -31,6 +31,11 @@ class BacktestRequest(BaseModel):
         ge=0,
         lt=1,
     )
+    strategy: Literal["aggressive_dca", "scheduled_dca"] = "aggressive_dca"
+    cadence: Literal["weekly", "biweekly", "monthly"] = "monthly"
+    day_of_month: int = Field(default=1, ge=1, le=28)
+    weekday: int = Field(default=0, ge=0, le=4)
+    skip_after_buy_n: int = Field(default=0, ge=0)
 
     @field_validator("start_date", "end_date", mode="before")
     @classmethod

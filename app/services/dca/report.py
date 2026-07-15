@@ -46,9 +46,11 @@ def build_metrics(
     std_dca_df: pd.DataFrame,
     benchmark_df: pd.DataFrame,
     annual_rf_rate: float = 0.05,
+    primary_key: str = "aggressive_dca",
+    primary_label: str = "Aggressive DCA",
 ) -> dict[str, dict[str, Any]]:
     frames = {
-        "aggressive_dca": ("Aggressive DCA", agg_dca_df),
+        primary_key: (primary_label, agg_dca_df),
         "standard_dca": ("Standard DCA", std_dca_df),
         "lump_sum": ("Lump Sum Benchmark", benchmark_df),
     }
@@ -76,6 +78,7 @@ def build_series(
     agg_dca_df: pd.DataFrame,
     std_dca_df: pd.DataFrame,
     benchmark_df: pd.DataFrame,
+    primary_key: str = "aggressive_dca",
 ) -> dict[str, Any]:
     dates = [d.strftime("%Y-%m-%d") for d in agg_dca_df.index]
     dip_mask = agg_dca_df["Execution_Signal"].astype(bool)
@@ -85,17 +88,17 @@ def build_series(
     return {
         "dates": dates,
         "portfolio_value": {
-            "aggressive_dca": [float(x) for x in agg_dca_df["Portfolio_Value"].tolist()],
+            primary_key: [float(x) for x in agg_dca_df["Portfolio_Value"].tolist()],
             "standard_dca": [float(x) for x in std_dca_df["Portfolio_Value"].tolist()],
             "lump_sum": [float(x) for x in benchmark_df["Portfolio_Value"].tolist()],
         },
         "drawdown_pct": {
-            "aggressive_dca": _drawdown_series(agg_dca_df["Portfolio_Value"]),
+            primary_key: _drawdown_series(agg_dca_df["Portfolio_Value"]),
             "standard_dca": _drawdown_series(std_dca_df["Portfolio_Value"]),
             "lump_sum": _drawdown_series(benchmark_df["Portfolio_Value"]),
         },
         "monthly_growth_pct": {
-            "aggressive_dca": _monthly_growth(agg_dca_df["Portfolio_Value"]),
+            primary_key: _monthly_growth(agg_dca_df["Portfolio_Value"]),
             "standard_dca": _monthly_growth(std_dca_df["Portfolio_Value"]),
             "lump_sum": _monthly_growth(benchmark_df["Portfolio_Value"]),
         },
@@ -111,11 +114,18 @@ def build_backtest_report(
     visualization: VisualizationMode = "series",
     annual_rf_rate: float = 0.05,
     title_suffix: str = "",
+    primary_key: str = "aggressive_dca",
+    primary_label: str = "Aggressive DCA",
 ) -> dict[str, Any]:
     report: dict[str, Any] = {
         "params": params,
         "metrics": build_metrics(
-            agg_dca_df, std_dca_df, benchmark_df, annual_rf_rate=annual_rf_rate
+            agg_dca_df,
+            std_dca_df,
+            benchmark_df,
+            annual_rf_rate=annual_rf_rate,
+            primary_key=primary_key,
+            primary_label=primary_label,
         ),
         "effective_start_date": agg_dca_df.index[0].strftime("%Y-%m-%d"),
         "effective_end_date": agg_dca_df.index[-1].strftime("%Y-%m-%d"),
@@ -124,12 +134,21 @@ def build_backtest_report(
     }
 
     if visualization in ("series", "both"):
-        report["series"] = build_series(agg_dca_df, std_dca_df, benchmark_df)
+        report["series"] = build_series(
+            agg_dca_df, std_dca_df, benchmark_df, primary_key=primary_key
+        )
 
     if visualization in ("images", "both"):
+        plot_kwargs: dict[str, str] = {}
+        if primary_key != "aggressive_dca" or primary_label != "Aggressive DCA":
+            plot_kwargs["primary_label"] = primary_label
         report["images"] = {
             "performance": render_performance_image(
-                agg_dca_df, std_dca_df, benchmark_df, title_suffix=title_suffix
+                agg_dca_df,
+                std_dca_df,
+                benchmark_df,
+                title_suffix=title_suffix,
+                **plot_kwargs,
             )
         }
 

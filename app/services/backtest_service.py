@@ -13,6 +13,7 @@ from app.models.backtest_run import BacktestRun
 from app.services.dca.data import fetch_data
 from app.services.dca.optimize import optimize_strategy
 from app.services.dca.report import VisualizationMode, build_backtest_report
+from app.services.dca.scheduled import run_scheduled_dca
 from app.services.dca.strategy import run_aggressive_dca, run_benchmark, run_standard_dca
 from app.services.market_data.base import MarketDataProvider
 from app.services.market_data.factory import get_market_data_provider
@@ -39,6 +40,11 @@ def run_and_persist_dca_backtest(
     initial_cash: float | None = None,
     monthly_cash: float | None = None,
     fee_rate: float | None = None,
+    strategy: str = "aggressive_dca",
+    cadence: str = "monthly",
+    day_of_month: int = 1,
+    weekday: int = 0,
+    skip_after_buy_n: int = 0,
     settings: Settings | None = None,
     provider: MarketDataProvider | None = None,
 ) -> BacktestRun:
@@ -74,8 +80,38 @@ def run_and_persist_dca_backtest(
 
     params: dict[str, Any]
     title_suffix = ""
+    primary_key = "aggressive_dca"
+    primary_label = "Aggressive DCA"
 
-    if optimize:
+    if strategy == "scheduled_dca":
+        params = {
+            "cadence": cadence,
+            "day_of_month": day_of_month,
+            "weekday": weekday,
+            "skip_after_buy_n": skip_after_buy_n,
+            "initial_cash": cash0,
+            "monthly_cash": cash_m,
+            "fee_rate": fee,
+            "optimized": False,
+        }
+        logger.info("Running scheduled DCA for %s with params %s", symbol, params)
+        try:
+            primary_df, _ = run_scheduled_dca(
+                df,
+                initial_cash=cash0,
+                monthly_cash=cash_m,
+                fee_rate=fee,
+                cadence=cadence,
+                day_of_month=day_of_month,
+                weekday=weekday,
+                skip_after_buy_n=skip_after_buy_n,
+                annual_rf_rate=rf,
+            )
+        except ValueError as exc:
+            raise BacktestServiceError(str(exc)) from exc
+        primary_key = "scheduled_dca"
+        primary_label = "Scheduled DCA"
+    elif optimize:
         logger.info("Starting strategy optimization for %s", symbol)
         best_params, _in_sample, out_of_sample = optimize_strategy(
             df,
@@ -104,6 +140,17 @@ def run_and_persist_dca_backtest(
             params["sma_period"],
             params.get("in_sample_sharpe"),
         )
+        logger.info("Running backtest for %s with params %s", symbol, params)
+        primary_df, _ = run_aggressive_dca(
+            run_df,
+            lookback=params["lookback"],
+            drawdown_thresh=params["drawdown_thresh"],
+            sma_period=params["sma_period"],
+            initial_cash=cash0,
+            monthly_cash=cash_m,
+            fee_rate=fee,
+            annual_rf_rate=rf,
+        )
     else:
         params = {
             "lookback": lookback if lookback is not None else 100,
@@ -116,55 +163,61 @@ def run_and_persist_dca_backtest(
         }
         run_df = df
         logger.info("Using fixed parameters for %s: %s", symbol, params)
+        logger.info("Running backtest for %s with params %s", symbol, params)
+        primary_df, _ = run_aggressive_dca(
+            run_df,
+            lookback=params["lookback"],
+            drawdown_thresh=params["drawdown_thresh"],
+            sma_period=params["sma_period"],
+            initial_cash=cash0,
+            monthly_cash=cash_m,
+            fee_rate=fee,
+            annual_rf_rate=rf,
+        )
 
-    logger.info("Running backtest for %s with params %s", symbol, params)
-    agg_df, _ = run_aggressive_dca(
-        run_df,
-        lookback=params["lookback"],
-        drawdown_thresh=params["drawdown_thresh"],
-        sma_period=params["sma_period"],
-        initial_cash=cash0,
-        monthly_cash=cash_m,
-        fee_rate=fee,
-        annual_rf_rate=rf,
-    )
-
-    if agg_df is None or agg_df.empty:
+    if primary_df is None or primary_df.empty:
         logger.warning("Test period too small after indicator warmup for %s", symbol)
         raise BacktestServiceError("Test period too small after indicator warmup.")
 
-    logger.info("Aggressive DCA complete for %s (%d rows); running standard DCA and benchmark", symbol, len(agg_df))
-    std_df = run_standard_dca(agg_df, fee_rate=fee)
-    bench_df = run_benchmark(agg_df, fee_rate=fee)
+    logger.info(
+        "%s complete for %s (%d rows); running standard DCA and benchmark",
+        primary_label,
+        symbol,
+        len(primary_df),
+    )
+    std_df = run_standard_dca(primary_df, fee_rate=fee)
+    bench_df = run_benchmark(primary_df, fee_rate=fee)
 
     logger.info("Building backtest report for %s (visualization=%s%s)", symbol, visualization, f" {title_suffix}" if title_suffix else "")
     report = build_backtest_report(
-        agg_df,
+        primary_df,
         std_df,
         bench_df,
         params=params,
         visualization=visualization,
         annual_rf_rate=rf,
         title_suffix=title_suffix,
+        primary_key=primary_key,
+        primary_label=primary_label,
     )
 
-    agg_metrics = report["metrics"]["aggressive_dca"]
+    metrics = report["metrics"][primary_key]
     logger.info(
         "Persisting backtest run for %s: sharpe=%.4f cagr=%.2f%% total_return=%.2f%%",
         symbol,
-        agg_metrics["sharpe_ratio"],
-        agg_metrics["cagr_pct"],
-        agg_metrics["total_return_pct"],
+        metrics["sharpe_ratio"],
+        metrics["cagr_pct"],
+        metrics["total_return_pct"],
     )
     row = BacktestRun(
         ticker=symbol,
-        strategy="aggressive_dca",
+        strategy=primary_key,
         start_date=start_date,
         end_date=end_date,
-        sharpe=agg_metrics["sharpe_ratio"],
-        cagr=agg_metrics["cagr_pct"],
-        total_return_pct=agg_metrics["total_return_pct"],
-        max_drawdown_pct=agg_metrics["max_drawdown_pct"],
+        sharpe=metrics["sharpe_ratio"],
+        cagr=metrics["cagr_pct"],
+        total_return_pct=metrics["total_return_pct"],
+        max_drawdown_pct=metrics["max_drawdown_pct"],
         params=params,
         result=report,
         visualization=visualization,
