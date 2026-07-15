@@ -52,6 +52,26 @@ def test_day_of_month_out_of_range_rejected() -> None:
         )
 
 
+def test_weekday_out_of_range_rejected() -> None:
+    with pytest.raises(ValidationError):
+        BacktestRequest(
+            start_date="2021-01-01",
+            end_date="2022-01-01",
+            strategy="scheduled_dca",
+            weekday=5,
+        )
+
+
+def test_skip_after_buy_n_negative_rejected() -> None:
+    with pytest.raises(ValidationError):
+        BacktestRequest(
+            start_date="2021-01-01",
+            end_date="2022-01-01",
+            strategy="scheduled_dca",
+            skip_after_buy_n=-1,
+        )
+
+
 def test_default_strategy_remains_aggressive() -> None:
     body = BacktestRequest(start_date="2021-01-01", end_date="2022-01-01")
     assert body.strategy == "aggressive_dca"

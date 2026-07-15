@@ -81,6 +81,10 @@ def build_injection_mask(
     if cadence == "biweekly":
         unique = unique[::2]
 
+    # Day-1 initial is handled in run_scheduled_dca; exclude from skip bookkeeping.
+    day0 = index[0]
+    unique = [h for h in unique if h != day0]
+
     if skip_after_buy_n > 0:
         kept: list[pd.Timestamp] = []
         skip_left = 0

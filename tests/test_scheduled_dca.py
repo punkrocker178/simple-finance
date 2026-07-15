@@ -26,12 +26,13 @@ def test_monthly_skip_and_next_trading_day_roll() -> None:
         day_of_month=1,
         skip_after_buy_n=1,
     )
-    # Candidates after roll: ~Jan 4, Feb 1, Mar 1, Apr 1, ...
-    # skip_after_buy_n=1 → keep Jan, skip Feb, keep Mar, skip Apr, ...
+    # Day-1 (Jan 4) excluded from skip bookkeeping; schedule starts Feb onward.
+    # skip_after_buy_n=1 → keep Feb, skip Mar, keep Apr, ...
     fired = list(df.index[mask])
-    assert fired[0] == pd.Timestamp("2021-01-04")
-    assert pd.Timestamp("2021-02-01") not in fired
-    assert fired[1] == pd.Timestamp("2021-03-01")
+    assert pd.Timestamp("2021-01-04") not in fired
+    assert fired[0] == pd.Timestamp("2021-02-01")
+    assert pd.Timestamp("2021-03-01") not in fired
+    assert fired[1] == pd.Timestamp("2021-04-01")
 
 
 def test_run_scheduled_dca_day1_initial_only_no_double_inject() -> None:
@@ -70,9 +71,31 @@ def test_gappy_index_skips_phantom_period_before_skip_n() -> None:
         skip_after_buy_n=1,
     )
     fired = list(df.index[mask])
-    assert fired[0] == pd.Timestamp("2021-01-04")
-    assert fired[1] == pd.Timestamp("2021-04-01")
-    assert pd.Timestamp("2021-03-01") not in fired
+    # Day-1 dropped; Feb rolls to Mar (deduped) — keep Mar, skip Apr, keep May.
+    assert pd.Timestamp("2021-01-04") not in fired
+    assert fired[0] == pd.Timestamp("2021-03-01")
+    assert fired[1] == pd.Timestamp("2021-05-03")  # May 1 2021 is Saturday → May 3
+    assert pd.Timestamp("2021-04-01") not in fired
+
+
+def test_run_scheduled_dca_skip_after_buy_excludes_day1_from_phase() -> None:
+    """skip_after_buy_n alternates from first post-day-1 schedule hit, not day-1 coincident."""
+    # Index starts 2021-01-04 (day-1 initial). day_of_month=1, skip_after_buy_n=1.
+    df = _bday_ohlcv("2021-01-04", periods=120)
+    out, _ = run_scheduled_dca(
+        df,
+        cadence="monthly",
+        day_of_month=1,
+        skip_after_buy_n=1,
+    )
+    assert bool(out.iloc[0]["Is_Schedule_Day"]) is False
+    schedule_days = out.index[out["Is_Schedule_Day"]]
+    # Feb kept, Mar skipped, Apr kept, May skipped, Jun kept, ...
+    assert schedule_days[0] == pd.Timestamp("2021-02-01")
+    assert pd.Timestamp("2021-03-01") not in schedule_days
+    assert schedule_days[1] == pd.Timestamp("2021-04-01")
+    assert pd.Timestamp("2021-05-03") not in schedule_days  # May 1 is Sat → May 3 bday
+    assert schedule_days[2] == pd.Timestamp("2021-06-01")
 
 
 def test_no_schedule_days_raises() -> None:

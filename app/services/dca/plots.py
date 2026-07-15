@@ -63,7 +63,7 @@ def build_performance_figure(
     bench_dd = (benchmark_df["Portfolio_Value"] - bench_peak) / bench_peak * 100
 
     ax2.fill_between(
-        agg_dd.index, agg_dd, 0, color="blue", alpha=0.2, label="Aggressive DCA Drawdown"
+        agg_dd.index, agg_dd, 0, color="blue", alpha=0.2, label=f"{primary_label} Drawdown"
     )
     ax2.plot(std_dd.index, std_dd, color="orange", linewidth=1.5, label="Standard DCA Drawdown")
     ax2.plot(
@@ -86,7 +86,7 @@ def build_performance_figure(
     )
 
     monthly_df = pd.DataFrame(
-        {"Aggressive DCA": agg_monthly, "Standard DCA": std_monthly, "Lump Sum": bench_monthly}
+        {primary_label: agg_monthly, "Standard DCA": std_monthly, "Lump Sum": bench_monthly}
     )
     monthly_df.index = monthly_df.index.strftime("%Y-%m")
 
