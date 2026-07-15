@@ -12,6 +12,7 @@ def build_performance_figure(
     std_dca_df: pd.DataFrame,
     benchmark_df: pd.DataFrame,
     title_suffix: str = "",
+    primary_label: str = "Aggressive DCA (Drawdown Dips)",
 ):
     plt.style.use("seaborn-v0_8-darkgrid")
     fig, (ax1, ax2, ax3) = plt.subplots(3, 1, figsize=(14, 15))
@@ -26,7 +27,7 @@ def build_performance_figure(
     ax1.plot(
         agg_dca_df.index,
         agg_dca_df["Portfolio_Value"],
-        label="Aggressive DCA (Drawdown Dips)",
+        label=primary_label,
         color="blue",
     )
     ax1.plot(
@@ -108,11 +109,14 @@ def render_performance_image(
     std_dca_df: pd.DataFrame,
     benchmark_df: pd.DataFrame,
     title_suffix: str = "",
+    primary_label: str = "Aggressive DCA (Drawdown Dips)",
 ) -> dict[str, str]:
     import matplotlib
 
     matplotlib.use("Agg", force=False)
-    fig = build_performance_figure(agg_dca_df, std_dca_df, benchmark_df, title_suffix=title_suffix)
+    fig = build_performance_figure(
+        agg_dca_df, std_dca_df, benchmark_df, title_suffix=title_suffix, primary_label=primary_label
+    )
     buffer = io.BytesIO()
     try:
         fig.savefig(buffer, format="png", dpi=120, bbox_inches="tight")
