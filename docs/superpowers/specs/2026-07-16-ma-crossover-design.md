@@ -1,7 +1,7 @@
 # MA Crossover Strategy — Design
 
 **Date:** 2026-07-16  
-**Status:** Draft (pending user review)
+**Status:** Approved
 
 ## Problem
 
