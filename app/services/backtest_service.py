@@ -15,6 +15,12 @@ from app.services.dca.optimize import optimize_strategy
 from app.services.dca.report import VisualizationMode, build_backtest_report
 from app.services.dca.scheduled import run_scheduled_dca
 from app.services.dca.strategy import run_aggressive_dca, run_benchmark, run_standard_dca
+from app.services.signals.ma_crossover import (
+    run_idle_cash_baseline,
+    run_lump_sum_baseline,
+    run_ma_crossover,
+)
+from app.services.signals.report import build_signal_backtest_report
 from app.services.market_data.base import MarketDataProvider
 from app.services.market_data.factory import get_market_data_provider
 from app.services.market_data.common import MarketDataError
@@ -226,6 +232,96 @@ def run_and_persist_dca_backtest(
     db.commit()
     db.refresh(row)
     logger.info("Saved backtest run id=%s for %s", row.id, symbol)
+    return row
+
+
+def run_and_persist_ma_crossover(
+    db: Session,
+    *,
+    start_date: date,
+    end_date: date,
+    ticker: str | None = None,
+    ma_type: str = "sma",
+    fast: int = 50,
+    slow: int = 200,
+    initial_cash: float | None = None,
+    fee_rate: float | None = None,
+    visualization: VisualizationMode = "series",
+    settings: Settings | None = None,
+    provider: MarketDataProvider | None = None,
+) -> BacktestRun:
+    settings = settings or get_settings()
+    provider = provider or get_market_data_provider(settings)
+    symbol = ticker or settings.default_ticker
+    cash0 = initial_cash if initial_cash is not None else settings.default_initial_cash
+    fee = fee_rate if fee_rate is not None else settings.default_fee_rate
+    rf = settings.annual_rf_rate
+
+    try:
+        df = fetch_data(
+            symbol,
+            start_date.isoformat(),
+            end_date.isoformat(),
+            provider=provider,
+        )
+    except MarketDataError as exc:
+        raise BacktestServiceError(str(exc)) from exc
+    except Exception as exc:
+        raise BacktestServiceError(f"Failed to fetch market data: {exc}") from exc
+
+    if df.empty:
+        raise BacktestServiceError(f"No market data for {symbol} in the requested range.")
+
+    params: dict[str, Any] = {
+        "ma_type": ma_type,
+        "fast": fast,
+        "slow": slow,
+        "initial_cash": cash0,
+        "fee_rate": fee,
+    }
+    try:
+        primary_df, _ = run_ma_crossover(
+            df,
+            ma_type=ma_type,
+            fast=fast,
+            slow=slow,
+            initial_cash=cash0,
+            fee_rate=fee,
+            annual_rf_rate=rf,
+        )
+    except ValueError as exc:
+        raise BacktestServiceError(str(exc)) from exc
+
+    if primary_df is None or primary_df.empty:
+        raise BacktestServiceError("Test period too small after indicator warmup.")
+
+    lump_df = run_lump_sum_baseline(primary_df, initial_cash=cash0, fee_rate=fee)
+    idle_df = run_idle_cash_baseline(primary_df, initial_cash=cash0)
+    report = build_signal_backtest_report(
+        primary_df,
+        lump_df,
+        idle_df,
+        params=params,
+        visualization=visualization,
+        annual_rf_rate=rf,
+    )
+    metrics = report["metrics"]["ma_crossover"]
+    row = BacktestRun(
+        ticker=symbol,
+        strategy="ma_crossover",
+        start_date=start_date,
+        end_date=end_date,
+        sharpe=metrics["sharpe_ratio"],
+        cagr=metrics["cagr_pct"],
+        total_return_pct=metrics["total_return_pct"],
+        max_drawdown_pct=metrics["max_drawdown_pct"],
+        visualization=visualization,
+        params=params,
+        result=report,
+    )
+    db.add(row)
+    db.commit()
+    db.refresh(row)
     return row
 
 

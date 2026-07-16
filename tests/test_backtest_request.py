@@ -5,7 +5,7 @@ from __future__ import annotations
 import pytest
 from pydantic import ValidationError
 
-from app.api.schemas.backtest import BacktestRequest
+from app.api.schemas.backtest import BacktestRequest, MaCrossoverRequest
 
 
 def test_fee_rate_must_be_fraction_not_percent() -> None:
@@ -75,3 +75,29 @@ def test_skip_after_buy_n_negative_rejected() -> None:
 def test_default_strategy_remains_aggressive() -> None:
     body = BacktestRequest(start_date="2021-01-01", end_date="2022-01-01")
     assert body.strategy == "aggressive_dca"
+
+
+def test_ma_crossover_defaults() -> None:
+    body = MaCrossoverRequest(start_date="2020-01-01", end_date="2021-01-01")
+    assert body.ma_type == "sma"
+    assert body.fast == 50
+    assert body.slow == 200
+
+
+def test_ma_crossover_fast_ge_slow_rejected() -> None:
+    with pytest.raises(ValidationError):
+        MaCrossoverRequest(
+            start_date="2020-01-01",
+            end_date="2021-01-01",
+            fast=200,
+            slow=50,
+        )
+
+
+def test_ma_crossover_invalid_ma_type_rejected() -> None:
+    with pytest.raises(ValidationError):
+        MaCrossoverRequest(
+            start_date="2020-01-01",
+            end_date="2021-01-01",
+            ma_type="wma",  # type: ignore[arg-type]
+        )
