@@ -9,8 +9,10 @@ const props = defineProps<{
 const labels: Record<string, string> = {
   aggressive_dca: 'Aggressive DCA',
   scheduled_dca: 'Scheduled DCA',
+  ma_crossover: 'MA Crossover',
   standard_dca: 'Standard DCA',
   lump_sum: 'Lump Sum',
+  idle_cash: 'Idle Cash',
 }
 
 const cards = computed(() =>
@@ -26,6 +28,8 @@ const cards = computed(() =>
       cashInjected: m.total_cash_injected,
       finalValue: m.final_portfolio_value,
       dipBuys: m.dip_buys_triggered,
+      buys: m.buys_triggered,
+      sells: m.sells_triggered,
     }
   }),
 )
@@ -62,6 +66,14 @@ function fmtPct(value: number | undefined): string {
         <template v-if="card.dipBuys != null">
           <dt class="text-gray-600">Dip buys</dt>
           <dd class="text-right font-medium">{{ card.dipBuys }}</dd>
+        </template>
+        <template v-if="card.buys != null">
+          <dt class="text-gray-600">Buys</dt>
+          <dd class="text-right font-medium">{{ card.buys }}</dd>
+        </template>
+        <template v-if="card.sells != null">
+          <dt class="text-gray-600">Sells</dt>
+          <dd class="text-right font-medium">{{ card.sells }}</dd>
         </template>
       </dl>
     </div>

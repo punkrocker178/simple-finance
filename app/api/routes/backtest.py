@@ -10,6 +10,7 @@ from app.api.schemas.backtest import (
     BacktestRequest,
     BacktestRunListResponse,
     BacktestRunSummary,
+    MaCrossoverRequest,
 )
 from app.core.db import get_db
 from app.services.backtest_service import (
@@ -17,6 +18,7 @@ from app.services.backtest_service import (
     get_backtest_run,
     list_backtest_runs,
     run_and_persist_dca_backtest,
+    run_and_persist_ma_crossover,
 )
 
 router = APIRouter()
@@ -71,6 +73,32 @@ def create_dca_backtest(body: BacktestRequest, db: Session = Depends(get_db)) ->
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"Backtest failed: {exc}") from exc
 
+    return _to_report(row)
+
+
+@router.post("/ma-crossover", response_model=BacktestReport)
+def create_ma_crossover_backtest(
+    body: MaCrossoverRequest, db: Session = Depends(get_db)
+) -> BacktestReport:
+    if body.end_date < body.start_date:
+        raise HTTPException(status_code=400, detail="end_date must be on or after start_date")
+    try:
+        row = run_and_persist_ma_crossover(
+            db,
+            ticker=body.ticker,
+            start_date=body.start_date,
+            end_date=body.end_date,
+            ma_type=body.ma_type,
+            fast=body.fast,
+            slow=body.slow,
+            initial_cash=body.initial_cash,
+            fee_rate=body.fee_rate,
+            visualization=body.visualization.value,
+        )
+    except BacktestServiceError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Backtest failed: {exc}") from exc
     return _to_report(row)
 
 

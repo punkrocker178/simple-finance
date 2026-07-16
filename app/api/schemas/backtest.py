@@ -5,7 +5,7 @@ from enum import Enum
 from typing import Any, Literal
 from uuid import UUID
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 
 class VisualizationMode(str, Enum):
@@ -48,6 +48,33 @@ class BacktestRequest(BaseModel):
         return value
 
 
+class MaCrossoverRequest(BaseModel):
+    ticker: str | None = None
+    start_date: date
+    end_date: date
+    ma_type: Literal["sma", "ema"] = "sma"
+    fast: int = Field(default=50, ge=1)
+    slow: int = Field(default=200, ge=2)
+    visualization: VisualizationMode = VisualizationMode.series
+    initial_cash: float | None = None
+    fee_rate: float | None = Field(default=None, ge=0, lt=1)
+
+    @field_validator("start_date", "end_date", mode="before")
+    @classmethod
+    def _coerce_date(cls, value: Any) -> Any:
+        if isinstance(value, datetime):
+            return value.date()
+        if isinstance(value, str) and "T" in value:
+            return date.fromisoformat(value.split("T", 1)[0])
+        return value
+
+    @model_validator(mode="after")
+    def _fast_lt_slow(self) -> MaCrossoverRequest:
+        if self.fast >= self.slow:
+            raise ValueError("fast must be less than slow")
+        return self
+
+
 class StrategyMetrics(BaseModel):
     total_cash_injected: float
     final_portfolio_value: float
@@ -56,6 +83,8 @@ class StrategyMetrics(BaseModel):
     max_drawdown_pct: float
     sharpe_ratio: float
     dip_buys_triggered: int | None = None
+    buys_triggered: int | None = None
+    sells_triggered: int | None = None
 
 
 class BacktestReport(BaseModel):

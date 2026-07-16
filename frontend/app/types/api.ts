@@ -70,11 +70,23 @@ export interface TickerSearchResponse {
 
 export type VisualizationMode = 'series' | 'images' | 'both'
 
+export interface MaCrossoverRequest {
+  ticker?: string | null
+  start_date: string
+  end_date: string
+  ma_type?: 'sma' | 'ema'
+  fast?: number | null
+  slow?: number | null
+  visualization?: VisualizationMode
+  initial_cash?: number | null
+  fee_rate?: number | null
+}
+
 export interface BacktestRequest {
   ticker?: string | null
   start_date: string
   end_date: string
-  strategy?: 'aggressive_dca' | 'scheduled_dca'
+  strategy?: 'aggressive_dca' | 'scheduled_dca' | 'ma_crossover'
   cadence?: 'weekly' | 'biweekly' | 'monthly'
   day_of_month?: number | null
   weekday?: number | null
@@ -87,6 +99,9 @@ export interface BacktestRequest {
   initial_cash?: number | null
   monthly_cash?: number | null
   fee_rate?: number | null
+  ma_type?: 'sma' | 'ema'
+  fast?: number | null
+  slow?: number | null
 }
 
 export interface StrategyMetrics {
@@ -97,6 +112,8 @@ export interface StrategyMetrics {
   max_drawdown_pct: number
   sharpe_ratio: number
   dip_buys_triggered?: number | null
+  buys_triggered?: number | null
+  sells_triggered?: number | null
 }
 
 export interface BacktestSeries {
@@ -104,17 +121,25 @@ export interface BacktestSeries {
   portfolio_value: {
     aggressive_dca?: number[]
     scheduled_dca?: number[]
-    standard_dca: number[]
+    ma_crossover?: number[]
+    standard_dca?: number[]
     lump_sum: number[]
+    idle_cash?: number[]
   }
   drawdown_pct: {
     aggressive_dca?: number[]
     scheduled_dca?: number[]
-    standard_dca: number[]
+    ma_crossover?: number[]
+    standard_dca?: number[]
     lump_sum: number[]
+    idle_cash?: number[]
   }
   monthly_growth_pct?: Record<string, { dates: string[]; values: number[] }>
   dip_buys?: { dates: string[]; portfolio_values: number[] }
+  trade_signals?: {
+    buys: { dates: string[]; portfolio_values: number[] }
+    sells: { dates: string[]; portfolio_values: number[] }
+  }
 }
 
 export interface BacktestReport {

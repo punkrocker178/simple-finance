@@ -4,7 +4,7 @@ import type { BacktestRunListResponse } from '~/types/api'
 
 useSeoMeta({
   title: 'Backtest History | Simple Finance',
-  description: 'Past DCA backtest runs',
+  description: 'Past backtest runs',
 })
 
 const { apiFetch } = useApi()
@@ -30,7 +30,7 @@ function onSelect(id: string) {
     <div class="flex flex-wrap items-end justify-between gap-4">
       <div>
         <h1 class="text-3xl font-semibold">Backtest history</h1>
-        <p class="mt-1 text-gray-600">Persisted DCA runs from the API.</p>
+        <p class="mt-1 text-gray-600">Persisted backtest runs from the API.</p>
       </div>
       <v-btn color="primary" to="/backtest">New backtest</v-btn>
     </div>

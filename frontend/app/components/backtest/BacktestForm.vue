@@ -28,7 +28,8 @@ const dateError = computed(() =>
   ohlcvDateError(model.value.start_date, model.value.end_date),
 )
 
-const isAggressive = computed(() => model.value.strategy !== 'scheduled_dca')
+const isMa = computed(() => model.value.strategy === 'ma_crossover')
+const isAggressive = computed(() => model.value.strategy === 'aggressive_dca')
 const isScheduled = computed(() => model.value.strategy === 'scheduled_dca')
 
 const cashLabel = computed(() =>
@@ -88,6 +89,7 @@ function onSubmit() {
         :items="[
           { title: 'Aggressive DCA', value: 'aggressive_dca' },
           { title: 'Scheduled DCA', value: 'scheduled_dca' },
+          { title: 'MA Crossover', value: 'ma_crossover' },
         ]"
         label="Strategy"
         density="comfortable"
@@ -128,6 +130,7 @@ function onSubmit() {
       <v-text-field
         v-model="monthlyCashText"
         v-maska="monthlyCashMask"
+        v-if="!isMa"
         :label="cashLabel"
         type="text"
         inputmode="numeric"
@@ -164,6 +167,31 @@ function onSubmit() {
           type="number"
           density="comfortable"
           clearable
+        />
+      </template>
+      <template v-if="isMa">
+        <v-select
+          v-model="model.ma_type"
+          :items="[
+            { title: 'SMA', value: 'sma' },
+            { title: 'EMA', value: 'ema' },
+          ]"
+          label="MA type"
+          density="comfortable"
+        />
+        <v-text-field
+          v-model.number="model.fast"
+          label="Fast period"
+          type="number"
+          min="1"
+          density="comfortable"
+        />
+        <v-text-field
+          v-model.number="model.slow"
+          label="Slow period"
+          type="number"
+          min="1"
+          density="comfortable"
         />
       </template>
       <template v-if="isScheduled">

@@ -2,8 +2,8 @@
 import type { BacktestSeries } from '~/types/api'
 
 useSeoMeta({
-  title: 'DCA Backtest | Simple Finance',
-  description: 'Run Aggressive DCA backtests',
+  title: 'Backtest | Simple Finance',
+  description: 'Run DCA and MA crossover backtests',
 })
 
 const route = useRoute()
@@ -17,7 +17,7 @@ const series = computed(() => store.lastReport?.series as BacktestSeries | null 
 
 async function onSubmit() {
   try {
-    await store.runDca()
+    await store.runBacktest()
   } catch {
     // error stored on store.error
   }
@@ -28,9 +28,9 @@ async function onSubmit() {
   <div class="flex flex-col gap-6">
     <div class="flex flex-wrap items-end justify-between gap-4">
       <div>
-        <h1 class="text-3xl font-semibold">DCA Backtest</h1>
+        <h1 class="text-3xl font-semibold">Backtest</h1>
         <p class="mt-1 text-gray-600">
-          Run Aggressive DCA against Standard DCA and lump-sum benchmarks.
+          Compare DCA strategies or MA crossover against benchmarks.
         </p>
       </div>
       <v-btn variant="outlined" to="/backtest/history">View history</v-btn>
