@@ -90,6 +90,22 @@ def run_ma_crossover(
     return test, sharpe
 
 
+def trade_markers(df: pd.DataFrame) -> dict[str, dict[str, list]]:
+    """Buy/sell fill dates and portfolio values for chart scatter."""
+    buys = df["Buy_Fill"].astype(bool)
+    sells = df["Sell_Fill"].astype(bool)
+    return {
+        "buys": {
+            "dates": [d.strftime("%Y-%m-%d") for d in df.index[buys]],
+            "portfolio_values": [float(x) for x in df.loc[buys, "Portfolio_Value"]],
+        },
+        "sells": {
+            "dates": [d.strftime("%Y-%m-%d") for d in df.index[sells]],
+            "portfolio_values": [float(x) for x in df.loc[sells, "Portfolio_Value"]],
+        },
+    }
+
+
 def run_lump_sum_baseline(
     index_df: pd.DataFrame,
     *,

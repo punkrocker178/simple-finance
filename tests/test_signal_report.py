@@ -45,3 +45,10 @@ def test_signal_report_keys_and_trade_counts() -> None:
     assert "ma_crossover" in report["series"]["portfolio_value"]
     assert "idle_cash" in report["series"]["portfolio_value"]
     assert report["effective_start_date"] == primary.index[0].strftime("%Y-%m-%d")
+    signals = report["series"]["trade_signals"]
+    assert len(signals["buys"]["dates"]) == m["buys_triggered"]
+    assert len(signals["sells"]["dates"]) == m["sells_triggered"]
+    if signals["buys"]["dates"]:
+        assert signals["buys"]["dates"][0] == primary.index[primary["Buy_Fill"]][0].strftime(
+            "%Y-%m-%d"
+        )

@@ -136,6 +136,10 @@ export interface BacktestSeries {
   }
   monthly_growth_pct?: Record<string, { dates: string[]; values: number[] }>
   dip_buys?: { dates: string[]; portfolio_values: number[] }
+  trade_signals?: {
+    buys: { dates: string[]; portfolio_values: number[] }
+    sells: { dates: string[]; portfolio_values: number[] }
+  }
 }
 
 export interface BacktestReport {

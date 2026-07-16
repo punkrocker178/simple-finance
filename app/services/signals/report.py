@@ -5,6 +5,7 @@ from typing import Any, Literal
 import pandas as pd
 
 from app.services.dca.metrics import calculate_cagr, calculate_sharpe
+from app.services.signals.ma_crossover import trade_markers
 
 VisualizationMode = Literal["series", "images", "both"]
 
@@ -99,6 +100,7 @@ def build_signal_backtest_report(
                 "idle_cash": _monthly_growth(idle_cash_df["Portfolio_Value"]),
             },
             "dip_buys": {"dates": [], "portfolio_values": []},
+            "trade_signals": trade_markers(primary_df),
         }
     # ponytail: images/both skip raster plots for signal strategies (no shared plot API yet).
     # Ceiling: UI requesting images gets series only. Upgrade: parameterize DCA plots.

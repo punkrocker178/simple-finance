@@ -82,7 +82,7 @@ const primaryName = computed(() =>
 )
 
 const option = computed(() => {
-  const { dates, portfolio_value, dip_buys } = props.series
+  const { dates, portfolio_value, dip_buys, trade_signals } = props.series
 
   const seriesList: Record<string, unknown>[] = [
     {
@@ -136,6 +136,32 @@ const option = computed(() => {
       }).filter(Boolean),
       symbolSize: 8,
     })
+  }
+
+  if (primaryKey.value === 'ma_crossover' && trade_signals) {
+    const dateIndex = new Map(dates.map((d, i) => [d, i]))
+    const scatter = (
+      name: string,
+      marker: { dates: string[]; portfolio_values: number[] },
+      color: string,
+      symbol: string,
+    ) => {
+      if (!marker.dates.length) return
+      seriesList.push({
+        name,
+        type: 'scatter',
+        data: marker.dates.map((d, i) => {
+          const idx = dateIndex.get(d)
+          return idx === undefined ? null : [idx, marker.portfolio_values[i]]
+        }).filter(Boolean),
+        symbol,
+        symbolSize: 10,
+        symbolRotate: name === 'Sell' ? 180 : 0,
+        itemStyle: { color },
+      })
+    }
+    scatter('Buy', trade_signals.buys, '#16a34a', 'triangle')
+    scatter('Sell', trade_signals.sells, '#dc2626', 'triangle')
   }
 
   return {
