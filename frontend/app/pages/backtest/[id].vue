@@ -6,9 +6,20 @@ import { formatParamsCash } from '~/utils/formatCash'
 const route = useRoute()
 const runId = computed(() => String(route.params.id))
 
+const strategyLabels: Record<string, string> = {
+  aggressive_dca: 'Aggressive DCA',
+  scheduled_dca: 'Scheduled DCA',
+  ma_crossover: 'MA Crossover',
+}
+
+const strategyLabel = computed(() => {
+  const key = report.value?.strategy
+  return key ? (strategyLabels[key] ?? key) : ''
+})
+
 useSeoMeta({
   title: () => `Backtest ${runId.value} | Simple Finance`,
-  description: 'Stored DCA backtest report',
+  description: 'Stored backtest report',
 })
 
 const { apiFetch } = useApi()
@@ -34,7 +45,7 @@ const formattedParams = computed(() =>
         {{ report?.ticker || 'Backtest run' }}
       </h1>
       <p v-if="report" class="mt-1 text-gray-600">
-        {{ report.strategy }} · {{ report.id }}
+        {{ strategyLabel }} · {{ report.id }}
         <span v-if="report.created_at">
           · {{ new Date(report.created_at).toLocaleString() }}
         </span>

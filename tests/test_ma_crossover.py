@@ -54,6 +54,29 @@ def test_golden_then_death_fills_next_open() -> None:
     assert isinstance(sharpe, float)
 
 
+def test_ignore_golden_cross_while_long() -> None:
+    # Two golden crosses before first death cross; only one buy while still long.
+    close = [10.0] * 8 + [12.0] * 7 + [14.0] + [5.0] * 8
+    df = _ohlcv_from_close(close)
+    out, _ = run_ma_crossover(
+        df, ma_type="sma", fast=3, slow=5, initial_cash=10_000.0, fee_rate=0.0
+    )
+    fast, slow = out["Fast_MA"], out["Slow_MA"]
+    golden = (fast.shift(1) <= slow.shift(1)) & (fast > slow)
+    assert golden.sum() >= 2
+    buys = out.index[out["Buy_Fill"]]
+    sells = out.index[out["Sell_Fill"]]
+    assert len(buys) == 1
+    assert len(sells) >= 1
+    first_buy = buys[0]
+    first_sell = sells[0]
+    goldens_while_long = out.index[
+        golden & (out.index > first_buy) & (out.index < first_sell)
+    ]
+    assert len(goldens_while_long) >= 1
+    assert out.loc[goldens_while_long[0], "Shares"] > 0.0
+
+
 def test_fee_applied_on_buy_and_sell() -> None:
     close = [10.0] * 8 + [20.0] * 8 + [5.0] * 8
     df = _ohlcv_from_close(close)
