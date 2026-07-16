@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import numpy as np
 import pandas as pd
 
 from app.services.dca.metrics import calculate_sharpe
@@ -38,35 +39,41 @@ def run_ma_crossover(
     slow_s = test["Slow_MA"]
     golden = (fast_s.shift(1) <= slow_s.shift(1)) & (fast_s > slow_s)
     death = (fast_s.shift(1) >= slow_s.shift(1)) & (fast_s < slow_s)
-    # Execute next bar
-    buy_pending = golden.shift(1).fillna(False).astype(bool)
-    sell_pending = death.shift(1).fillna(False).astype(bool)
+    # Execute next bar — precompute bool/price arrays; integer index loop (no .loc/iterrows)
+    n = len(test)
+    buy_pending = np.zeros(n, dtype=bool)
+    sell_pending = np.zeros(n, dtype=bool)
+    if n > 1:
+        buy_pending[1:] = golden.to_numpy(dtype=bool)[:-1]
+        sell_pending[1:] = death.to_numpy(dtype=bool)[:-1]
+    opens = test["Open"].to_numpy(dtype=float, copy=False)
+    closes = test["Close"].to_numpy(dtype=float, copy=False)
 
     cash = float(initial_cash)
     shares = 0.0
-    cash_col: list[float] = []
-    shares_col: list[float] = []
-    buy_fill: list[bool] = []
-    sell_fill: list[bool] = []
-    pv_col: list[float] = []
+    cash_col = np.empty(n, dtype=float)
+    shares_col = np.empty(n, dtype=float)
+    buy_fill = np.zeros(n, dtype=bool)
+    sell_fill = np.zeros(n, dtype=bool)
+    pv_col = np.empty(n, dtype=float)
 
-    for ts, row in test.iterrows():
+    for i in range(n):
         bought = False
         sold = False
-        if bool(buy_pending.loc[ts]) and shares == 0.0 and cash > 0.0:
-            shares = (cash * (1.0 - fee_rate)) / float(row["Open"])
+        o = opens[i]
+        if buy_pending[i] and shares == 0.0 and cash > 0.0:
+            shares = (cash * (1.0 - fee_rate)) / o
             cash = 0.0
             bought = True
-        if bool(sell_pending.loc[ts]) and shares > 0.0:
-            cash = shares * float(row["Open"]) * (1.0 - fee_rate)
+        if sell_pending[i] and shares > 0.0:
+            cash = shares * o * (1.0 - fee_rate)
             shares = 0.0
             sold = True
-        pv = cash + shares * float(row["Close"])
-        cash_col.append(cash)
-        shares_col.append(shares)
-        buy_fill.append(bought)
-        sell_fill.append(sold)
-        pv_col.append(pv)
+        cash_col[i] = cash
+        shares_col[i] = shares
+        buy_fill[i] = bought
+        sell_fill[i] = sold
+        pv_col[i] = cash + shares * closes[i]
 
     test["Cash"] = cash_col
     test["Shares"] = shares_col
