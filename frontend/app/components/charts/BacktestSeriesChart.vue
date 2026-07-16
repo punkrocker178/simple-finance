@@ -67,13 +67,18 @@ onMounted(() => {
   })
 })
 
-const primaryKey = computed(() =>
-  props.series.portfolio_value.scheduled_dca != null
-    ? 'scheduled_dca'
-    : 'aggressive_dca',
-)
+const primaryKey = computed(() => {
+  const pv = props.series.portfolio_value
+  if (pv.ma_crossover != null) return 'ma_crossover'
+  if (pv.scheduled_dca != null) return 'scheduled_dca'
+  return 'aggressive_dca'
+})
 const primaryName = computed(() =>
-  primaryKey.value === 'scheduled_dca' ? 'Scheduled DCA' : 'Aggressive DCA',
+  ({
+    ma_crossover: 'MA Crossover',
+    scheduled_dca: 'Scheduled DCA',
+    aggressive_dca: 'Aggressive DCA',
+  } as Record<string, string>)[primaryKey.value],
 )
 
 const option = computed(() => {
@@ -86,19 +91,39 @@ const option = computed(() => {
       data: portfolio_value[primaryKey.value],
       showSymbol: false,
     },
-    {
-      name: 'Standard DCA',
-      type: 'line',
-      data: portfolio_value.standard_dca,
-      showSymbol: false,
-    },
-    {
-      name: 'Lump Sum',
-      type: 'line',
-      data: portfolio_value.lump_sum,
-      showSymbol: false,
-    },
   ]
+
+  if (primaryKey.value === 'ma_crossover') {
+    seriesList.push(
+      {
+        name: 'Lump Sum',
+        type: 'line',
+        data: portfolio_value.lump_sum,
+        showSymbol: false,
+      },
+      {
+        name: 'Idle Cash',
+        type: 'line',
+        data: portfolio_value.idle_cash,
+        showSymbol: false,
+      },
+    )
+  } else {
+    seriesList.push(
+      {
+        name: 'Standard DCA',
+        type: 'line',
+        data: portfolio_value.standard_dca,
+        showSymbol: false,
+      },
+      {
+        name: 'Lump Sum',
+        type: 'line',
+        data: portfolio_value.lump_sum,
+        showSymbol: false,
+      },
+    )
+  }
 
   if (dip_buys?.dates?.length) {
     const dateIndex = new Map(dates.map((d, i) => [d, i]))
