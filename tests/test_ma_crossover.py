@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import numpy as np
 import pandas as pd
 import pytest
 
@@ -45,6 +44,9 @@ def test_golden_then_death_fills_next_open() -> None:
     golden = (fast.shift(1) <= slow.shift(1)) & (fast > slow)
     first_golden = out.index[golden][0]
     assert buys[0] > first_golden
+    death = (fast.shift(1) >= slow.shift(1)) & (fast < slow)
+    first_death = out.index[death][0]
+    assert sells[0] > first_death
     # End flat in cash after death cross fill
     assert out["Shares"].iloc[-1] == 0.0
     assert out["Cash"].iloc[-1] > 0.0
@@ -65,8 +67,27 @@ def test_fee_applied_on_buy_and_sell() -> None:
     )
     sell_rows = out.loc[out["Sell_Fill"]]
     assert len(sell_rows) >= 1
-    # After sell, cash < shares_before * open (fee)
-    assert out["Cash"].iloc[-1] < 10_000.0
+    sell_row = sell_rows.iloc[0]
+    sell_loc = out.index.get_loc(sell_rows.index[0])
+    shares_before = out.iloc[sell_loc - 1]["Shares"]
+    assert sell_row["Cash"] == pytest.approx(
+        shares_before * sell_row["Open"] * (1.0 - 0.01), rel=1e-9
+    )
+
+
+def test_signal_on_last_bar_no_fill() -> None:
+    # Golden cross on the final bar — no next open to fill.
+    close = [10.0] * 9 + [50.0]
+    df = _ohlcv_from_close(close)
+    out, _ = run_ma_crossover(
+        df, ma_type="sma", fast=3, slow=5, initial_cash=10_000.0, fee_rate=0.0
+    )
+    fast, slow = out["Fast_MA"], out["Slow_MA"]
+    golden = (fast.shift(1) <= slow.shift(1)) & (fast > slow)
+    assert golden.iloc[-1]
+    assert not out["Buy_Fill"].iloc[-1]
+    assert not out["Sell_Fill"].iloc[-1]
+    assert len(out) == len(df) - 4  # slow=5 warmup; no extra row beyond input
 
 
 def test_fast_ge_slow_raises() -> None:
