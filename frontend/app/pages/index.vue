@@ -1,13 +1,12 @@
 <script setup lang="ts">
-import { useApi } from '~/composables/useApi'
-import type { MarketSummaryResponse } from '~/types/api'
+import { useMarketApi } from '~/composables/useMarketApi'
 
 useSeoMeta({
   title: 'Watchlist | Simple Finance',
   description: 'Market summary watchlist',
 })
 
-const { apiFetch } = useApi()
+const { getSummary } = useMarketApi()
 const router = useRouter()
 const watchlist = useWatchlist()
 
@@ -15,14 +14,7 @@ const symbolsParam = computed(() => watchlist.symbols.value.join(','))
 
 const { data, pending, error, refresh } = await useAsyncData(
   'market-summary',
-  () => {
-    if (!symbolsParam.value) {
-      return Promise.resolve({ symbols: [], items: [] } satisfies MarketSummaryResponse)
-    }
-    return apiFetch<MarketSummaryResponse>('/api/v1/market/summary', {
-      query: { symbols: symbolsParam.value },
-    })
-  },
+  () => getSummary(symbolsParam.value || undefined),
   { server: false, watch: [symbolsParam] },
 )
 

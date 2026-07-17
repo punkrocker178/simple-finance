@@ -9,6 +9,12 @@ Nuxt 4 UI for the Simple Finance FastAPI backend.
 - Pinia
 - ECharts (`vue-echarts`)
 
+## Architecture
+
+Data fetching uses typed API composables (`useMarketApi`, `useBacktestApi`) with `useAsyncData` for page reads, and Pinia only for interactive/mutable state (backtest form + run result).
+
+See [docs/state-and-data-fetching.md](docs/state-and-data-fetching.md) for when to use Pinia vs `useAsyncData` in this SSR app.
+
 ## Setup
 
 ```bash

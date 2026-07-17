@@ -1,22 +1,19 @@
 <script setup lang="ts">
-import { useApi } from '~/composables/useApi'
-import type { BacktestRunListResponse } from '~/types/api'
+import { useBacktestApi } from '~/composables/useBacktestApi'
 
 useSeoMeta({
   title: 'Backtest History | Simple Finance',
   description: 'Past backtest runs',
 })
 
-const { apiFetch } = useApi()
+const { listRuns } = useBacktestApi()
 const router = useRouter()
 const tickerFilter = ref('')
 
 const { data, pending, error, refresh } = await useAsyncData(
   'backtest-runs',
   () =>
-    apiFetch<BacktestRunListResponse>('/api/v1/backtest/runs', {
-      query: tickerFilter.value ? { ticker: tickerFilter.value } : undefined,
-    }),
+    listRuns(tickerFilter.value ? { ticker: tickerFilter.value } : undefined),
   { watch: [tickerFilter] },
 )
 

@@ -1,12 +1,12 @@
 <script setup lang="ts">
-import { useApi } from '~/composables/useApi'
-import type { TickerSearchItem, TickerSearchResponse } from '~/types/api'
+import { useMarketApi } from '~/composables/useMarketApi'
+import type { TickerSearchItem } from '~/types/api'
 
 const props = defineProps<{
   onAdd: (symbol: string) => boolean
 }>()
 
-const { apiFetch } = useApi()
+const { searchTickers } = useMarketApi()
 
 const search = ref('')
 const selected = ref<TickerSearchItem | null>(null)
@@ -39,10 +39,7 @@ async function fetchResults(query: string) {
   const { signal } = abortController
   loading.value = true
   try {
-    const data = await apiFetch<TickerSearchResponse>('/api/v1/market/tickers/search', {
-      query: { q: query, limit: 20 },
-      signal,
-    })
+    const data = await searchTickers(query, { limit: 20, signal })
     if (signal.aborted) return
     items.value = data.items
   } catch {

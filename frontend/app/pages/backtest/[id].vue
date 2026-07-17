@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { useApi } from '~/composables/useApi'
-import type { BacktestReport, BacktestSeries } from '~/types/api'
+import { useBacktestApi } from '~/composables/useBacktestApi'
+import type { BacktestSeries } from '~/types/api'
 import { formatParamsCash } from '~/utils/formatCash'
 
 const route = useRoute()
@@ -22,11 +22,11 @@ useSeoMeta({
   description: 'Stored backtest report',
 })
 
-const { apiFetch } = useApi()
+const { getRun } = useBacktestApi()
 
 const { data: report, pending, error } = await useAsyncData(
   () => `backtest-run-${runId.value}`,
-  () => apiFetch<BacktestReport>(`/api/v1/backtest/runs/${runId.value}`),
+  () => getRun(runId.value),
   { watch: [runId] },
 )
 
