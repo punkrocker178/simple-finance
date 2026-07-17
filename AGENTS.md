@@ -25,6 +25,7 @@ Config: `.env.example`. Market provider: `MARKET_DATA_PROVIDER` in `.env`.
 | `app/services/dca/` | Backtest strategy, metrics, plots |
 | `app/api/routes/` | FastAPI endpoints |
 | `frontend/` | Nuxt 4 UI |
+| `frontend/docs/state-and-data-fetching.md` | Pinia vs `useAsyncData` / API composables |
 
 Match existing patterns in neighboring files. Minimize scope; do not refactor unrelated code.
 

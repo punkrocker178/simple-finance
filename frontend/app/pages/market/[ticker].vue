@@ -1,6 +1,5 @@
 <script setup lang="ts">
-import { useApi } from '~/composables/useApi'
-import type { OhlcvResponse, TickerInfo } from '~/types/api'
+import { useMarketApi } from '~/composables/useMarketApi'
 import {
   earliestStartForEnd,
   ohlcvDateError,
@@ -16,7 +15,7 @@ useSeoMeta({
   description: () => `Ticker detail and OHLCV for ${ticker.value}`,
 })
 
-const { apiFetch } = useApi()
+const { getTicker, getOhlcv } = useMarketApi()
 
 const today = todayDateInput()
 const endDate = ref(today)
@@ -27,7 +26,7 @@ const dateError = computed(() => ohlcvDateError(startDate.value, endDate.value))
 
 const { data: info, error: infoError } = await useAsyncData(
   () => `ticker-info-${ticker.value}`,
-  () => apiFetch<TickerInfo>(`/api/v1/market/tickers/${encodeURIComponent(ticker.value)}`),
+  () => getTicker(ticker.value),
   { watch: [ticker] },
 )
 
@@ -42,10 +41,7 @@ const {
     if (dateError.value) {
       throw createError({ statusCode: 400, message: dateError.value })
     }
-    return apiFetch<OhlcvResponse>(
-      `/api/v1/market/tickers/${encodeURIComponent(ticker.value)}/ohlcv`,
-      { query: { start: startDate.value, end: endDate.value } },
-    )
+    return getOhlcv(ticker.value, startDate.value, endDate.value)
   },
   { watch: [ticker, startDate, endDate] },
 )
